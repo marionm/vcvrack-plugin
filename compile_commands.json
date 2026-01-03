@@ -1,0 +1,31 @@
+[
+  {
+    "arguments": [
+      "/usr/bin/g++",
+      "-Iextern/json/include",
+      "-Iextern/httplib",
+      "-Iextern/json",
+      "-std=c++11",
+      "-Wsuggest-override",
+      "-fPIC",
+      "-I/home/mike/code/Rack-SDK/include",
+      "-I/home/mike/code/Rack-SDK/dep/include",
+      "-g",
+      "-O3",
+      "-funsafe-math-optimizations",
+      "-fno-omit-frame-pointer",
+      "-Wall",
+      "-Wextra",
+      "-Wno-unused-parameter",
+      "-Wno-vla-extension",
+      "-march=nehalem",
+      "-c",
+      "-o",
+      "build/src/seqhub.cpp.o",
+      "src/seqhub.cpp"
+    ],
+    "directory": "/mnt/c/Users/mikem/code/vcvrack",
+    "file": "/mnt/c/Users/mikem/code/vcvrack/src/seqhub.cpp",
+    "output": "/mnt/c/Users/mikem/code/vcvrack/build/src/seqhub.cpp.o"
+  }
+]

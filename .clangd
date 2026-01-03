@@ -1,0 +1,9 @@
+CompileFlags:
+  Add:
+    - -std=gnu++17
+    - -Iextern
+    - -Iextern/json
+    - -Iextern/json/include
+    - -Iextern/httplib
+    - -I/home/mike/code/Rack-SDK/Rack-SDK/include
+    - -I/home/mike/code/Rack-SDK/Rack-SDK/dep/include
