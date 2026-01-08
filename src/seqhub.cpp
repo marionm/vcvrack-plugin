@@ -15,16 +15,18 @@ using namespace rack;
 // Sequencer driven by Github contribution activity
 struct Seqhub : Module {
   enum LightIds {
-    FETCH_LIGHT,
+    ENUMS(REFRESH_LIGHT, 2),
     NUM_LIGHTS
   };
 
-  enum class FetchState {
+  enum class RefreshStatus {
     Idle,
     InProgress,
-    Success,
     Error
   };
+
+  static const auto REFRESH_LIGHT_G = REFRESH_LIGHT;
+  static const auto REFRESH_LIGHT_R = REFRESH_LIGHT + 1;
 
   std::string auth;
 
@@ -34,12 +36,10 @@ struct Seqhub : Module {
   std::thread worker;
   std::atomic<bool> stopWorker{false};
   std::atomic<bool> shouldFetch{false};
-  std::atomic<FetchState> fetchState{FetchState::Idle};
+  std::atomic<RefreshStatus> refreshStatus{RefreshStatus::Idle};
 
   Seqhub() {
     config(0, 0, 0, NUM_LIGHTS);
-
-    configLight(FETCH_LIGHT);
 
     worker = std::thread([this] { workerLoop(); });
   }
@@ -52,20 +52,6 @@ struct Seqhub : Module {
   }
 
   void process(const ProcessArgs&) override {
-    switch (fetchState.load()) {
-      case FetchState::Idle:
-        lights[FETCH_LIGHT].setBrightness(0.f);
-        break;
-      case FetchState::InProgress:
-        lights[FETCH_LIGHT].setBrightness(0.5f);
-        break;
-      case FetchState::Success:
-        lights[FETCH_LIGHT].setBrightness(1.f);
-        break;
-      case FetchState::Error:
-        lights[FETCH_LIGHT].setBrightness(-1.f);
-        break;
-    }
   }
 
   void workerLoop() {
@@ -84,7 +70,7 @@ struct Seqhub : Module {
       return;
     }
 
-    fetchState.store(FetchState::InProgress);
+    refreshStatus.store(RefreshStatus::InProgress);
 
     try {
       size_t atPos = auth.find('@');
@@ -93,7 +79,7 @@ struct Seqhub : Module {
       std::string token = auth.substr(splitIndex);
 
       if (token.empty()) {
-        fetchState.store(FetchState::Error);
+        refreshStatus.store(RefreshStatus::Error);
         return;
       }
 
@@ -198,10 +184,6 @@ struct Seqhub : Module {
       }
     }
 
-    if (!contributionsPerDay.empty()) {
-      fetchState.store(FetchState::Success);
-    }
-
     logState("dataFromJson");
   }
 
@@ -224,7 +206,7 @@ struct AuthField : ui::TextField {
     TextField::onSelectKey(e);
 
     if (e.action == GLFW_PRESS && e.key == GLFW_KEY_ENTER) {
-      if (module->fetchState.load() != Seqhub::FetchState::InProgress) {
+      if (module->refreshStatus.load() != Seqhub::RefreshStatus::InProgress) {
         module->auth = text;
         module->shouldFetch.store(true);
       }
@@ -244,25 +226,25 @@ struct AuthField : ui::TextField {
   }
 };
 
-struct PassFailLight : MediumLight<GreenRedLight> {
-  void draw(const DrawArgs &args) override {
-    if (module) {
-      float brightness = module->lights[Seqhub::FETCH_LIGHT].getBrightness();
+struct RefreshButton : TGreenRedLight<GrayModuleLightWidget> {
+  Seqhub* module = nullptr;
+  AuthField* authField = nullptr;
 
-      if (brightness < 0.f) {
-        setBrightnesses({0.f, 1.f});
-      } else {
-        setBrightnesses({brightness, 0.f});
+  void onButton(const rack::event::Button& e) override {
+    if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS) {
+      if (module && module->refreshStatus.load() != Seqhub::RefreshStatus::InProgress) {
+        module->auth = authField->text;
+        module->shouldFetch.store(true);
       }
+
+      e.consume(this);
     }
 
-    MediumLight<GreenRedLight>::draw(args);
+    GrayModuleLightWidget::onButton(e);
   }
 };
 
 struct SeqhubWidget : app::ModuleWidget {
-  ui::Label* startDateLabel;
-
   SeqhubWidget(Seqhub* module) {
     setModule(module);
     setPanel(createPanel(asset::plugin(pluginInstance, "res/Seqhub.svg")));
@@ -273,22 +255,35 @@ struct SeqhubWidget : app::ModuleWidget {
     authField->box.size = mm2px(Vec(50, 8));
     addChild(authField);
 
-    addChild(createLightCentered<PassFailLight>(mm2px(Vec(30, 58)), module, Seqhub::FETCH_LIGHT));
+    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(5, 32)), module, Seqhub::REFRESH_LIGHT);
+    refreshButton->module = module;
+    refreshButton->authField = authField;
+    refreshButton->box.size = mm2px(Vec(5.3, 5.3)); 
 
-    startDateLabel = new ui::Label();
-    startDateLabel->box.pos = mm2px(Vec(5, 44)); // Position it below the token
-    startDateLabel->text = "Start date: " + (module ? module->startDate : "");
-    addChild(startDateLabel);
+    addChild(refreshButton);
   }
 
   void step() override {
     ModuleWidget::step();
 
-    if (module) {
-      Seqhub* m = dynamic_cast<Seqhub*>(module);
-      if (m && startDateLabel) {
-        startDateLabel->text = "Start date: " + m->startDate;
-      }
+    Seqhub* m = getModule<Seqhub>();
+    if (!m) {
+      return;
+    }
+
+    switch (m->refreshStatus.load()) {
+      case Seqhub::RefreshStatus::Idle:
+        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.f);
+        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(0.f);
+        break;
+      case Seqhub::RefreshStatus::InProgress:
+        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.5f);
+        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(1.f);
+        break;
+      case Seqhub::RefreshStatus::Error:
+        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.f);
+        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(1.f);
+        break;
     }
   }
 };
