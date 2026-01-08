@@ -26,8 +26,7 @@ struct Seqhub : Module {
     Error
   };
 
-  std::string username;
-  std::string token;
+  std::string auth;
 
   std::vector<u_int> contributionsPerDay;
   std::string startDate;
@@ -80,14 +79,24 @@ struct Seqhub : Module {
   }
 
   void fetchContributions() {
-    if (token.empty()) {
-      fetchState.store(FetchState::Idle);
+    if (auth.empty()) {
+      refreshStatus.store(RefreshStatus::Idle);
       return;
     }
 
     fetchState.store(FetchState::InProgress);
 
     try {
+      size_t atPos = auth.find('@');
+      size_t splitIndex = (atPos == std::string::npos) ? 0 : atPos + 1;
+      std::string username = (atPos == std::string::npos) ? "" : auth.substr(0, atPos);
+      std::string token = auth.substr(splitIndex);
+
+      if (token.empty()) {
+        fetchState.store(FetchState::Error);
+        return;
+      }
+
       httplib::SSLClient cli("api.github.com");
 
       httplib::Headers headers = {
@@ -144,24 +153,20 @@ struct Seqhub : Module {
             }
           }
 
-          logState("fetchContributions");
-          fetchState.store(FetchState::Success);
+          logState("refreshContributions");
+          refreshStatus.store(RefreshStatus::Idle);
           return;
         }
       }
     } catch (...) {
     }
 
-    fetchState.store(FetchState::Error);
+    refreshStatus.store(RefreshStatus::Error);
   }
 
+  // Token is potentially sensitive - don't hang onto it
   json_t* dataToJson() override {
     json_t* root = json_object();
-
-    json_object_set_new(root, "username", json_string(username.c_str()));
-
-    // Token is potentially sensitive - don't hang onto it
-    // json_object_set_new(root, "token", json_string(token.c_str()));
 
     json_object_set_new(root, "startDate", json_string(startDate.c_str()));
 
@@ -176,14 +181,6 @@ struct Seqhub : Module {
   }
 
   void dataFromJson(json_t* root) override {
-    if (auto usernameJson = json_object_get(root, "username")) {
-      username = json_string_value(usernameJson);
-    }
-
-    if (auto tokenJson = json_object_get(root, "token")) {
-      token = json_string_value(tokenJson);
-    }
-
     if (auto startDateJson = json_object_get(root, "startDate")) {
       startDate = json_string_value(startDateJson);
     }
@@ -220,34 +217,30 @@ struct Seqhub : Module {
   }
 };
 
-struct UsernameField : ui::TextField {
+struct AuthField : ui::TextField {
   Seqhub* module = nullptr;
 
   void onSelectKey(const rack::event::SelectKey& e) override {
     TextField::onSelectKey(e);
-    if (e.action == GLFW_PRESS && e.key == GLFW_KEY_ENTER) {
-      module->username = text;
-      module->shouldFetch.store(true);
-    }
-  }
-};
 
-struct TokenField : ui::TextField {
-  Seqhub* module = nullptr;
-
-  void onSelectKey(const rack::event::SelectKey& e) override {
-    TextField::onSelectKey(e);
     if (e.action == GLFW_PRESS && e.key == GLFW_KEY_ENTER) {
-      module->token = text;
-      module->shouldFetch.store(true);
+      if (module->fetchState.load() != Seqhub::FetchState::InProgress) {
+        module->auth = text;
+        module->shouldFetch.store(true);
+      }
     }
   }
 
   void draw(const DrawArgs& args) override {
-    std::string real = text;
-    text = std::string(real.size(), '*');
+    size_t atPos = text.find('@');
+    size_t splitIndex = (atPos == std::string::npos) ? 0 : atPos + 1;
+    std::string usernameWithAt = text.substr(0, splitIndex);
+    std::string token = text.substr(atPos + 1);
+
+    std::string originalText = text;
+    text = usernameWithAt + std::string(token.size(), '*');
     TextField::draw(args);
-    text = real;
+    text = originalText;
   }
 };
 
@@ -274,20 +267,11 @@ struct SeqhubWidget : app::ModuleWidget {
     setModule(module);
     setPanel(createPanel(asset::plugin(pluginInstance, "res/Seqhub.svg")));
 
-    auto* usernameField = new UsernameField();
-    usernameField->module = module;
-    usernameField->box.pos = mm2px(Vec(5, 20));
-    usernameField->box.size = mm2px(Vec(50, 8));
-    if (module) {
-      usernameField->text = module->username;
-    }
-    addChild(usernameField);
-
-    auto* tokenField = new TokenField();
-    tokenField->module = module;
-    tokenField->box.pos = mm2px(Vec(5, 32));
-    tokenField->box.size = mm2px(Vec(50, 8));
-    addChild(tokenField);
+    auto* authField = new AuthField();
+    authField->module = module;
+    authField->box.pos = mm2px(Vec(5, 20));
+    authField->box.size = mm2px(Vec(50, 8));
+    addChild(authField);
 
     addChild(createLightCentered<PassFailLight>(mm2px(Vec(30, 58)), module, Seqhub::FETCH_LIGHT));
 
