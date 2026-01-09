@@ -251,14 +251,14 @@ struct SeqhubWidget : app::ModuleWidget {
 
     auto* authField = new AuthField();
     authField->module = module;
-    authField->box.pos = mm2px(Vec(5, 20));
-    authField->box.size = mm2px(Vec(50, 8));
+    authField->box.pos = mm2px(Vec(4, 10));
+    authField->box.size = mm2px(Vec(152, 8));
     addChild(authField);
 
-    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(5, 32)), module, Seqhub::REFRESH_LIGHT);
+    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(160, 10)), module, Seqhub::REFRESH_LIGHT);
     refreshButton->module = module;
     refreshButton->authField = authField;
-    refreshButton->box.size = mm2px(Vec(5.3, 5.3)); 
+    refreshButton->box.size = mm2px(Vec(8, 8));
 
     addChild(refreshButton);
   }
