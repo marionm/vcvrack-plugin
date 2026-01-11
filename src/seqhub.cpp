@@ -15,15 +15,16 @@ using namespace rack;
 // Sequencer driven by Github contribution activity
 struct Seqhub : Module {
   enum ParamId {
-    SOURCE_MODE_PARAM,
     RUN_PARAM,
     RESET_PARAM,
+    RANDOM_PARAM,
     START_DATE_PARAM,
     LENGTH_PARAM,
-    FILTER_PARAM,
+    PING_PONG_PARAM,
     WORKING_WEEKENDS_PARAM,
     RISE_SPEED_PARAM,
     FALL_SPEED_PARAM,
+    FILTER_PARAM,
     SCALE_PARAM,
     NUM_PARAMS
   };
@@ -32,12 +33,14 @@ struct Seqhub : Module {
     CLOCK_INPUT,
     RUN_INPUT,
     RESET_INPUT,
+    RANDOM_INPUT,
     START_DATE_INPUT,
     LENGTH_INPUT,
-    FILTER_INPUT,
+    PING_PONG_INPUT,
     WORKING_WEEKENDS_INPUT,
     RISE_SPEED_INPUT,
     FALL_SPEED_INPUT,
+    FILTER_INPUT,
     SCALE_INPUT,
     NUM_INPUTS
   };
@@ -54,6 +57,9 @@ struct Seqhub : Module {
     CLOCK_LIGHT,
     RUN_LIGHT,
     RESET_LIGHT,
+    RANDOM_LIGHT,
+    PING_PONG_LIGHT,
+    WORKING_WEEKENDS_LIGHT,
     ENUMS(REFRESH_LIGHT, 2),
     NUM_LIGHTS
   };
@@ -80,26 +86,29 @@ struct Seqhub : Module {
   Seqhub() {
     config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
-    configParam(SOURCE_MODE_PARAM, 0.f, 1.f, 0.f, "");
     configParam(RUN_PARAM, 0.f, 1.f, 0.f, "Run");
     configParam(RESET_PARAM, 0.f, 1.f, 0.f, "Reset");
+    configParam(RANDOM_PARAM, 0.f, 1.f, 0.f, "Randomize");
     configParam(START_DATE_PARAM, 0.f, 1.f, 0.f, "Start date");
     configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "Sequence length");
-    configParam(FILTER_PARAM, 0.f, 1.f, 0.f, "Filter");
+    configParam(PING_PONG_PARAM, 0.f, 1.f, 0.f, "Ping pong");
     configParam(WORKING_WEEKENDS_PARAM, 0.f, 1.f, 0.f, "Working weekends");
     configParam(RISE_SPEED_PARAM, 0.f, 1.f, 0.f, "Rise speed");
     configParam(FALL_SPEED_PARAM, 0.f, 1.f, 0.f, "Fall speed");
+    configParam(FILTER_PARAM, 0.f, 1.f, 0.f, "Filter");
     configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
 
     configInput(CLOCK_INPUT, "Clock");
     configInput(RUN_INPUT, "Run");
     configInput(RESET_INPUT, "Reset");
+    configInput(RANDOM_INPUT, "Randomize");
     configInput(START_DATE_INPUT, "Start date");
     configInput(LENGTH_INPUT, "Sequence length");
-    configInput(FILTER_INPUT, "Filter");
+    configInput(PING_PONG_INPUT, "Ping pong");
     configInput(WORKING_WEEKENDS_INPUT, "Working weekends");
     configInput(RISE_SPEED_INPUT, "Rise speed");
     configInput(FALL_SPEED_INPUT, "Fall speed");
+    configInput(FILTER_INPUT, "Filter");
     configInput(SCALE_INPUT, "Scale");
 
     configOutput(CV_OUTPUT, "CV");
@@ -222,7 +231,6 @@ struct Seqhub : Module {
 
     json_object_set_new(root, "startDate", json_string(startDate.c_str()));
 
-    // TODO: Use patch storage instead of JSON?
     json_t* contributionsPerDayJson = json_array();
     for (auto& contributions : contributionsPerDay) {
       json_array_append_new(contributionsPerDayJson, json_integer(contributions));
@@ -265,7 +273,14 @@ struct Seqhub : Module {
   }
 };
 
-// TODO: Style this
+// TODO: text field should be input *and* output
+//   output = copy/pastable string representing the sequence
+//     maybe dot separated int values, base-64'ed
+//     cleaner way to deal with persisting output in json too?
+//   if input is a valid output, use it
+//   else, treat as a github key
+//     after loading, change  text to output representation
+// TODO: Style this with colors and font
 struct AuthField : ui::TextField {
   Seqhub* module = nullptr;
 
@@ -301,6 +316,7 @@ struct RefreshButton : TGreenRedLight<GrayModuleLightWidget> {
     bgColor = nvgRGBA(0, 0, 0, 0);
     borderColor = nvgRGBA(0, 0, 0, 0);
 
+    // TODO: Fix centering
     auto bezel = new VCVBezel();
     bezel->box.size = box.size;
     bezel->box.pos.x += 0.25;
@@ -334,45 +350,47 @@ struct SeqhubWidget : app::ModuleWidget {
 
     auto* authField = new AuthField();
     authField->module = module;
-    authField->box.pos = mm2px(Vec(5.75, 13.75));
-    authField->box.size = mm2px(Vec(136, 8));
+    authField->box.pos = mm2px(Vec(8, 17));
+    authField->box.size = mm2px(Vec(176, 8));
     addChild(authField);
 
-    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(147.75, 13.75)), module, Seqhub::REFRESH_LIGHT);
+    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(187, 17)), module, Seqhub::REFRESH_LIGHT);
     refreshButton->module = module;
     refreshButton->authField = authField;
     refreshButton->box.size = mm2px(Vec(8, 8));
     addChild(refreshButton);
 
-    // TODO: Need a horizontal two-way switch
-    addParam(createParamCentered<CKSS>(mm2px(Vec(179.75, 17.75)), module, Seqhub::SOURCE_MODE_PARAM));
-    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(23.75, 90.0)), module, Seqhub::RUN_PARAM, Seqhub::RUN_LIGHT));
-    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(37.75, 90.0)), module, Seqhub::RESET_PARAM, Seqhub::RESET_LIGHT));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(51.75, 90.0)), module, Seqhub::START_DATE_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(65.75, 90.0)), module, Seqhub::LENGTH_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(79.75, 90.0)), module, Seqhub::FILTER_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(93.75, 90.0)), module, Seqhub::WORKING_WEEKENDS_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(107.75, 90.0)), module, Seqhub::RISE_SPEED_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(121.75, 90.0)), module, Seqhub::FALL_SPEED_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(135.75, 90.0)), module, Seqhub::SCALE_PARAM));
+    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(12, 91)), module, Seqhub::CLOCK_LIGHT));
 
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(9.75, 114.0)), module, Seqhub::CLOCK_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(23.75, 114.0)), module, Seqhub::RUN_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(37.75, 114.0)), module, Seqhub::RESET_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(51.75, 114.0)), module, Seqhub::START_DATE_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(65.75, 114.0)), module, Seqhub::LENGTH_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(79.75, 114.0)), module, Seqhub::FILTER_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(93.75, 114.0)), module, Seqhub::WORKING_WEEKENDS_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(107.75, 114.0)), module, Seqhub::RISE_SPEED_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(121.75, 114.0)), module, Seqhub::FALL_SPEED_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(135.75, 114.0)), module, Seqhub::SCALE_INPUT));
+    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(23, 91)), module, Seqhub::RUN_PARAM, Seqhub::RUN_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(34, 91)), module, Seqhub::RESET_PARAM, Seqhub::RESET_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(45, 91)), module, Seqhub::RANDOM_PARAM, Seqhub::RANDOM_LIGHT));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(56, 91)), module, Seqhub::START_DATE_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(67, 91)), module, Seqhub::LENGTH_PARAM));
+    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(78, 91)), module, Seqhub::PING_PONG_PARAM, Seqhub::PING_PONG_LIGHT));
+    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(89, 91)), module, Seqhub::WORKING_WEEKENDS_PARAM, Seqhub::WORKING_WEEKENDS_LIGHT));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(100, 91)), module, Seqhub::RISE_SPEED_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(111, 91)), module, Seqhub::FALL_SPEED_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(122, 91)), module, Seqhub::FILTER_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(133, 91)), module, Seqhub::SCALE_PARAM));
 
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(149.75, 114.0)), module, Seqhub::CV_OUTPUT));
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(163.75, 114.0)), module, Seqhub::GATE_OUTPUT));
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(177.75, 114.0)), module, Seqhub::TRIGGER_OUTPUT));
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(191.75, 114.0)), module, Seqhub::END_OF_SEQUENCE_OUTPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(12, 113)), module, Seqhub::CLOCK_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(23, 113)), module, Seqhub::RUN_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(34, 113)), module, Seqhub::RESET_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(45, 113)), module, Seqhub::RANDOM_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(56, 113)), module, Seqhub::START_DATE_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(67, 113)), module, Seqhub::LENGTH_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(78, 113)), module, Seqhub::PING_PONG_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(89, 113)), module, Seqhub::WORKING_WEEKENDS_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(100, 113)), module, Seqhub::RISE_SPEED_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(111, 113)), module, Seqhub::FALL_SPEED_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(122, 113)), module, Seqhub::FILTER_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(133, 113)), module, Seqhub::SCALE_INPUT));
 
-    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(9.75, 90.0)), module, Seqhub::CLOCK_LIGHT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(155, 113)), module, Seqhub::CV_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(166, 113)), module, Seqhub::GATE_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(177, 113)), module, Seqhub::TRIGGER_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(188, 113)), module, Seqhub::END_OF_SEQUENCE_OUTPUT));
   }
 
   void step() override {
