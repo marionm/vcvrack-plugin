@@ -4,6 +4,8 @@
 
 ### Seqhub
 
+![Seqhub](./res/Seqhub.png)
+
 A sequencer based on Github user's contribution activity.
 
 #### Token
