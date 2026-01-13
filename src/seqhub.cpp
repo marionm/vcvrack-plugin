@@ -75,7 +75,7 @@ struct Seqhub : Module {
 
   std::string auth;
 
-  std::vector<u_int> contributionsPerDay;
+  std::vector<int> contributionsPerDay;
   std::string startDate;
 
   std::thread worker;
@@ -203,16 +203,10 @@ struct Seqhub : Module {
       if (auto res = cli.Post("/graphql", headers, jsonBody.dump(), "application/json")) {
         if (res->status == 200) {
           auto json = nlohmann::json::parse(res->body);
-          auto& contributions = json["data"][responseScope]["contributionsCollection"];
+          const auto& contributions = json["data"][responseScope]["contributionsCollection"];
 
           startDate = contributions["startedAt"].get<std::string>();
-
-          contributionsPerDay.clear();
-          for (auto& week : contributions["contributionCalendar"]["weeks"]) {
-            for (auto& day : week["contributionDays"]) {
-              contributionsPerDay.push_back(day["contributionCount"].get<int>());
-            }
-          }
+          setContributionsPerDay(contributions["contributionsCalendar"]);
 
           logState("refreshContributions");
           refreshStatus.store(RefreshStatus::Idle);
@@ -223,6 +217,36 @@ struct Seqhub : Module {
     }
 
     refreshStatus.store(RefreshStatus::Error);
+  }
+
+  void setContributionsPerDay(const nlohmann::json& contributions) {
+    std::vector<int> vector;
+
+    int weeksSize = (int)contributions["weeks"].size();
+    for (int i = weeksSize - 1; i >= 0; --i) {
+      const auto& days = contributions["weeks"][i]["contributionDays"];
+      int daysSize = (int)days.size();
+
+      for (int j = daysSize - 1; j >= 0; --j) {
+        vector.push_back(days[j]["contributionCount"].get<int>());
+
+        if (vector.size() == 360) {
+          goto finish;
+        }
+      }
+    }
+
+    while (vector.size() < 360) {
+      vector.push_back(0);
+    }
+
+finish:
+    std::reverse(vector.begin(), vector.end());
+    setContributionsPerDay(std::move(vector));
+  }
+
+  void setContributionsPerDay(std::vector<int> vector) {
+    this->contributionsPerDay = std::move(vector);
   }
 
   // Token is potentially sensitive - don't hang onto it
