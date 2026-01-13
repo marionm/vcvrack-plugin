@@ -362,6 +362,41 @@ struct RefreshButton : TGreenRedLight<GrayModuleLightWidget> {
   }
 };
 
+struct Contributions : Widget {
+  Seqhub* module = nullptr;
+
+  void draw(const DrawArgs &args) override {
+    if (!module) {
+      // TODO: Draw random sample
+      return;
+    }
+
+    try {
+      for (int i = 0; i < 360; i++) {
+      // for (int i = 0; i < (int)module->contributionsPerDay.size(); i++) {
+        int x = 2 + (i % 36) * 5;
+        int y = 2 + (i / 36) * 5;
+
+        // int value = module->contributionsPerDay[i];
+        NVGcolor color = nvgRGBA(0, 255, 0, rand() * 200 + 55);
+
+        nvgBeginPath(args.vg);
+        nvgRect(args.vg, mm2px(x), mm2px(y), mm2px(4), mm2px(4));
+        nvgFillColor(args.vg, color);
+        nvgFill(args.vg);
+
+        if (i == 42) {
+          nvgStrokeWidth(args.vg, mm2px(0.5));
+          nvgStrokeColor(args.vg, nvgRGB(255, 255, 255));
+          nvgStroke(args.vg);
+        }
+      }
+    } catch (...) {
+      DEBUG("error in Contributions::draw");
+    }
+  }
+};
+
 struct SeqhubWidget : app::ModuleWidget {
   SeqhubWidget(Seqhub* module) {
     setModule(module);
@@ -383,6 +418,11 @@ struct SeqhubWidget : app::ModuleWidget {
     refreshButton->authField = authField;
     refreshButton->box.size = mm2px(Vec(8, 8));
     addChild(refreshButton);
+
+    Contributions* contributions = createWidget<Contributions>(mm2px(Vec(10, 30)));
+    contributions->module = module;
+    contributions->setSize(mm2px(Vec(183, 53)));
+    addChild(contributions);
 
     addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(12, 91)), module, Seqhub::CLOCK_LIGHT));
 
