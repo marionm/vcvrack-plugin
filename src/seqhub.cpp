@@ -75,7 +75,7 @@ struct Seqhub : Module {
 
   std::string auth;
 
-  std::vector<int> contributionsPerDay;
+  std::vector<float> contributionsPerDay;
   std::string startDate;
 
   std::thread worker;
@@ -200,13 +200,14 @@ struct Seqhub : Module {
 
       DEBUG("request:\n%s", body.c_str());
 
+      // TODO: Safer parsing - the catch(...) won't actually catch json key typo errors
       if (auto res = cli.Post("/graphql", headers, jsonBody.dump(), "application/json")) {
         if (res->status == 200) {
           auto json = nlohmann::json::parse(res->body);
           const auto& contributions = json["data"][responseScope]["contributionsCollection"];
 
           startDate = contributions["startedAt"].get<std::string>();
-          setContributionsPerDay(contributions["contributionsCalendar"]);
+          setContributionsPerDay(contributions["contributionCalendar"]);
 
           logState("refreshContributions");
           refreshStatus.store(RefreshStatus::Idle);
@@ -220,33 +221,46 @@ struct Seqhub : Module {
   }
 
   void setContributionsPerDay(const nlohmann::json& contributions) {
-    std::vector<int> vector;
+    std::vector<int> values;
 
+    int maxValue = 0;
     int weeksSize = (int)contributions["weeks"].size();
     for (int i = weeksSize - 1; i >= 0; --i) {
       const auto& days = contributions["weeks"][i]["contributionDays"];
       int daysSize = (int)days.size();
 
       for (int j = daysSize - 1; j >= 0; --j) {
-        vector.push_back(days[j]["contributionCount"].get<int>());
+        int value = days[j]["contributionCount"].get<int>();
+        values.push_back(value);
 
-        if (vector.size() == 360) {
+        if (value > maxValue) {
+          maxValue = value;
+        }
+
+        if (values.size() == 360) {
           goto finish;
         }
       }
     }
 
-    while (vector.size() < 360) {
-      vector.push_back(0);
+    while (values.size() < 360) {
+      values.push_back(0);
     }
 
-finish:
-    std::reverse(vector.begin(), vector.end());
-    setContributionsPerDay(std::move(vector));
+    finish:
+
+    std::reverse(values.begin(), values.end());
+
+    std::vector<float> normalizedValues;
+    for (int value : values) {
+      normalizedValues.push_back((float)value / maxValue * 10.f);
+    }
+
+    setContributionsPerDay(std::move(normalizedValues));
   }
 
-  void setContributionsPerDay(std::vector<int> vector) {
-    this->contributionsPerDay = std::move(vector);
+  void setContributionsPerDay(std::vector<float> values) {
+    this->contributionsPerDay = std::move(values);
   }
 
   // Token is potentially sensitive - don't hang onto it
@@ -311,6 +325,7 @@ struct AuthField : ui::TextField {
   void onSelectKey(const rack::event::SelectKey& e) override {
     TextField::onSelectKey(e);
 
+    // FIXME: or numpad enter
     if (e.action == GLFW_PRESS && e.key == GLFW_KEY_ENTER) {
       if (module->refreshStatus.load() != Seqhub::RefreshStatus::InProgress) {
         module->auth = text;
@@ -372,13 +387,26 @@ struct Contributions : Widget {
     }
 
     try {
-      for (int i = 0; i < 360; i++) {
-      // for (int i = 0; i < (int)module->contributionsPerDay.size(); i++) {
-        int x = 2 + (i % 36) * 5;
-        int y = 2 + (i / 36) * 5;
+      DEBUG("size: %i", (int)module->contributionsPerDay.size());
+      // TODO: 360 in a 36x10 grid is nice... but is weird with weeks
+      //   Is there a width i can make work that is divisible by 7? (Or tall and render vertically?)
+      //   i guess 35x10 could be ok... can reduce overall width of the module by a bit if it looks weird
+      //   matters less with truly random data... could also consider an "alignment" toggle or something
+      for (int i = 0; i < (int)module->contributionsPerDay.size(); i++) {
+      // for (int i = 0; i < 360; i++) {
+      // for (int i = 0; i < 350; i++) {
+        int x = 4 + (i % 35) * 5;
+        int y = 4 + (i / 35) * 5;
 
-        // int value = module->contributionsPerDay[i];
-        NVGcolor color = nvgRGBA(0, 255, 0, rand() * 200 + 55);
+        // NVGcolor color = nvgRGBA(0, 255, 0, rand() * 200 + 55);
+
+        // TODO: This color formula is not great:
+        //   Github actually uses multiple, quantized colors
+        //   I do need a gradient, but maybe do so with clear cutoffs like them?
+        //   Or, at least pick the right one from their set that works well with alpha
+        //   Also, feels off w/scaling? non-zero but small values are not visible
+        int value = module->contributionsPerDay[i];
+        NVGcolor color = nvgRGBA(25, 108, 46, value / 10.f * 255.f);
 
         nvgBeginPath(args.vg);
         nvgRect(args.vg, mm2px(x), mm2px(y), mm2px(4), mm2px(4));
