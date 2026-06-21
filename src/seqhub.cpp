@@ -1,14 +1,6 @@
-#define CPPHTTPLIB_OPENSSL_SUPPORT
-
 #include "plugin.hpp"
-
-#include <atomic>
-#include <httplib.h>
-#include <nlohmann/json.hpp>
+#include "IntegrationsModal.hpp"
 #include <sstream>
-#include <string>
-#include <thread>
-#include <vector>
 
 using namespace rack;
 
@@ -60,28 +52,11 @@ struct Seqhub : Module {
     RANDOM_LIGHT,
     PING_PONG_LIGHT,
     WORKING_WEEKENDS_LIGHT,
-    ENUMS(REFRESH_LIGHT, 2),
     NUM_LIGHTS
   };
 
-  enum class RefreshStatus {
-    Idle,
-    InProgress,
-    Error
-  };
-
-  static const auto REFRESH_LIGHT_G = REFRESH_LIGHT;
-  static const auto REFRESH_LIGHT_R = REFRESH_LIGHT + 1;
-
-  std::string auth;
-
   std::vector<float> contributionsPerDay;
   std::string startDate;
-
-  std::thread worker;
-  std::atomic<bool> stopWorker{false};
-  std::atomic<bool> shouldFetch{false};
-  std::atomic<RefreshStatus> refreshStatus{RefreshStatus::Idle};
 
   Seqhub() {
     config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
@@ -116,154 +91,18 @@ struct Seqhub : Module {
     configOutput(TRIGGER_OUTPUT, "Trigger");
     configOutput(END_OF_SEQUENCE_OUTPUT, "End of sequence");
 
-    worker = std::thread([this] { workerLoop(); });
   }
 
   ~Seqhub() override {
-    stopWorker.store(true);
-    if (worker.joinable()) {
-      worker.join();
-    }
   }
 
   void process(const ProcessArgs&) override {
-  }
-
-  void workerLoop() {
-    while (!stopWorker.load()) {
-      if (shouldFetch.exchange(false)) {
-        fetchContributions();
-      }
-
-      std::this_thread::sleep_for(std::chrono::milliseconds(50));
-    }
-  }
-
-  void fetchContributions() {
-    if (auth.empty()) {
-      refreshStatus.store(RefreshStatus::Idle);
-      return;
-    }
-
-    refreshStatus.store(RefreshStatus::InProgress);
-
-    try {
-      size_t atPos = auth.find('@');
-      size_t splitIndex = (atPos == std::string::npos) ? 0 : atPos + 1;
-      std::string username = (atPos == std::string::npos) ? "" : auth.substr(0, atPos);
-      std::string token = auth.substr(splitIndex);
-
-      if (token.empty()) {
-        refreshStatus.store(RefreshStatus::Error);
-        return;
-      }
-
-      httplib::SSLClient cli("api.github.com");
-
-      httplib::Headers headers = {
-        {"Authorization", "Bearer " + token},
-        {"Content-Type", "application/json"},
-        {"User-Agent", "cpp-httplib-plugin"}
-      };
-
-      std::string header, requestScope, responseScope;
-      if (username.empty()) {
-        header = "query";
-        requestScope = "viewer";
-        responseScope = "viewer";
-      } else {
-        header = "query($username: String!)";
-        requestScope = "user(login: $username)";
-        responseScope = "user";
-      }
-
-      std::string query = R"(
-        contributionsCollection {
-          startedAt
-          contributionCalendar {
-            weeks {
-              contributionDays {
-                contributionCount
-              }
-            }
-          }
-        }
-      )";
-
-      std::string body = header + " { " + requestScope + " { " + query + " } }";
-
-      nlohmann::json jsonBody;
-      jsonBody["query"] = body;
-      if (!username.empty()) {
-        jsonBody["variables"] = {{"username", username}};
-      }
-
-      DEBUG("request:\n%s", body.c_str());
-
-      // TODO: Safer parsing - the catch(...) won't actually catch json key typo errors
-      if (auto res = cli.Post("/graphql", headers, jsonBody.dump(), "application/json")) {
-        if (res->status == 200) {
-          auto json = nlohmann::json::parse(res->body);
-          const auto& contributions = json["data"][responseScope]["contributionsCollection"];
-
-          startDate = contributions["startedAt"].get<std::string>();
-          setContributionsPerDay(contributions["contributionCalendar"]);
-
-          logState("refreshContributions");
-          refreshStatus.store(RefreshStatus::Idle);
-          return;
-        }
-      }
-    } catch (...) {
-    }
-
-    refreshStatus.store(RefreshStatus::Error);
-  }
-
-  void setContributionsPerDay(const nlohmann::json& contributions) {
-    std::vector<int> values;
-
-    int maxValue = 0;
-    int weeksSize = (int)contributions["weeks"].size();
-    for (int i = weeksSize - 1; i >= 0; --i) {
-      const auto& days = contributions["weeks"][i]["contributionDays"];
-      int daysSize = (int)days.size();
-
-      for (int j = daysSize - 1; j >= 0; --j) {
-        int value = days[j]["contributionCount"].get<int>();
-        values.push_back(value);
-
-        if (value > maxValue) {
-          maxValue = value;
-        }
-
-        if (values.size() == 360) {
-          goto finish;
-        }
-      }
-    }
-
-    while (values.size() < 360) {
-      values.push_back(0);
-    }
-
-    finish:
-
-    std::reverse(values.begin(), values.end());
-
-    std::vector<float> normalizedValues;
-    for (int value : values) {
-      normalizedValues.push_back((float)value / maxValue * 10.f);
-    }
-
-    setContributionsPerDay(std::move(normalizedValues));
   }
 
   void setContributionsPerDay(std::vector<float> values) {
     this->contributionsPerDay = std::move(values);
   }
 
-  // Token is potentially sensitive - don't hang onto it
   json_t* dataToJson() override {
     json_t* root = json_object();
 
@@ -308,72 +147,6 @@ struct Seqhub : Module {
     DEBUG("%s", prefix.c_str());
     DEBUG("contributionsPerDay: %s", oss.str().c_str());
     DEBUG("startDate: %s", startDate.c_str());
-  }
-};
-
-// TODO: text field should be input *and* output
-//   output = copy/pastable string representing the sequence
-//     maybe dot separated int values, base-64'ed
-//     cleaner way to deal with persisting output in json too?
-//   if input is a valid output, use it
-//   else, treat as a github key
-//     after loading, change  text to output representation
-// TODO: Style this with colors and font
-struct AuthField : ui::TextField {
-  Seqhub* module = nullptr;
-
-  void onSelectKey(const rack::event::SelectKey& e) override {
-    TextField::onSelectKey(e);
-
-    // FIXME: or numpad enter
-    if (e.action == GLFW_PRESS && e.key == GLFW_KEY_ENTER) {
-      if (module->refreshStatus.load() != Seqhub::RefreshStatus::InProgress) {
-        module->auth = text;
-        module->shouldFetch.store(true);
-      }
-    }
-  }
-
-  void draw(const DrawArgs& args) override {
-    size_t atPos = text.find('@');
-    size_t splitIndex = (atPos == std::string::npos) ? 0 : atPos + 1;
-    std::string usernameWithAt = text.substr(0, splitIndex);
-    std::string token = text.substr(atPos + 1);
-
-    std::string originalText = text;
-    text = usernameWithAt + std::string(token.size(), '*');
-    TextField::draw(args);
-    text = originalText;
-  }
-};
-
-struct RefreshButton : TGreenRedLight<GrayModuleLightWidget> {
-  Seqhub* module = nullptr;
-  AuthField* authField = nullptr;
-
-  RefreshButton() {
-    bgColor = nvgRGBA(0, 0, 0, 0);
-    borderColor = nvgRGBA(0, 0, 0, 0);
-
-    // TODO: Fix centering
-    auto bezel = new VCVBezel();
-    bezel->box.size = box.size;
-    bezel->box.pos.x += 0.25;
-    bezel->box.pos.y += 0.25;
-    addChild(bezel);
-  }
-
-  void onButton(const rack::event::Button& e) override {
-    if (e.button == GLFW_MOUSE_BUTTON_LEFT && e.action == GLFW_PRESS) {
-      if (module && module->refreshStatus.load() != Seqhub::RefreshStatus::InProgress) {
-        module->auth = authField->text;
-        module->shouldFetch.store(true);
-      }
-
-      e.consume(this);
-    }
-
-    GrayModuleLightWidget::onButton(e);
   }
 };
 
@@ -435,17 +208,7 @@ struct SeqhubWidget : app::ModuleWidget {
     addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
     addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-    auto* authField = new AuthField();
-    authField->module = module;
-    authField->box.pos = mm2px(Vec(8, 17));
-    authField->box.size = mm2px(Vec(176, 8));
-    addChild(authField);
 
-    RefreshButton* refreshButton = createLight<RefreshButton>(mm2px(Vec(187, 17)), module, Seqhub::REFRESH_LIGHT);
-    refreshButton->module = module;
-    refreshButton->authField = authField;
-    refreshButton->box.size = mm2px(Vec(8, 8));
-    addChild(refreshButton);
 
     Contributions* contributions = createWidget<Contributions>(mm2px(Vec(10, 30)));
     contributions->module = module;
@@ -485,29 +248,22 @@ struct SeqhubWidget : app::ModuleWidget {
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(188, 113)), module, Seqhub::END_OF_SEQUENCE_OUTPUT));
   }
 
-  void step() override {
-    ModuleWidget::step();
+  void appendContextMenu(ui::Menu* menu) override {
+    ModuleWidget::appendContextMenu(menu);
 
     Seqhub* m = getModule<Seqhub>();
-    if (!m) {
-      return;
-    }
+    if (!m) return;
 
-    switch (m->refreshStatus.load()) {
-      case Seqhub::RefreshStatus::Idle:
-        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.f);
-        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(0.f);
-        break;
-      case Seqhub::RefreshStatus::InProgress:
-        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.5f);
-        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(1.f);
-        break;
-      case Seqhub::RefreshStatus::Error:
-        m->lights[Seqhub::REFRESH_LIGHT_G].setBrightness(0.f);
-        m->lights[Seqhub::REFRESH_LIGHT_R].setBrightness(1.f);
-        break;
-    }
+    menu->addChild(new ui::MenuSeparator());
+    menu->addChild(createMenuItem("Integrations...", "", [=]() {
+      IntegrationsModal* modal = new IntegrationsModal([m](const std::vector<float>& contributions, const std::string& date) {
+        m->contributionsPerDay = contributions;
+        m->startDate = date;
+      });
+      APP->scene->addChild(modal);
+    }));
   }
+
 };
 
 Model* modelSeqhub = createModel<Seqhub, SeqhubWidget>("Seqhub");
