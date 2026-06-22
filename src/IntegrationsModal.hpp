@@ -88,7 +88,7 @@ struct IntegrationsModal : ui::MenuOverlay {
     };
 
     ModalBox* modalBox = new ModalBox();
-    modalBox->box.size = Vec(520, 195);
+    modalBox->box.size = Vec(520, 180);
 
     ui::MenuLabel* title = new ui::MenuLabel();
     title->text = "Enter GitHub personal access token to use contribution history as sequencer values\nOptionally prefix with <username>@\nUse a classic token with 'repo' and 'read:user' for private contribution data\nNot saved with patch";

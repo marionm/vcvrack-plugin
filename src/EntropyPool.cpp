@@ -1,5 +1,6 @@
 #include "plugin.hpp"
 #include "IntegrationsModal.hpp"
+#include "SeedModal.hpp"
 #include <random>
 
 using namespace rack;
@@ -225,6 +226,15 @@ struct EntropyPoolWidget : app::ModuleWidget {
     if (!m) return;
 
     menu->addChild(new ui::MenuSeparator());
+
+    menu->addChild(createMenuItem("Seed...", "", [=]() {
+      SeedModal* modal = new SeedModal(m->seed, [m](uint32_t seed) {
+        m->seed = seed;
+        m->randomizeValues();
+      });
+      APP->scene->addChild(modal);
+    }));
+
     menu->addChild(createMenuItem("Integrations...", "", [=]() {
       IntegrationsModal* modal = new IntegrationsModal(m->valuesSize, [m](const std::vector<float>& values) {
         m->values = values;
