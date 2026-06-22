@@ -171,13 +171,13 @@ struct GitHubIntegration {
           maxValue = value;
         }
 
-        if (values.size() == 360) {
+        if (values.size() == 240) {
           goto finish;
         }
       }
     }
 
-    while (values.size() < 360) {
+    while (values.size() < 240) {
       values.push_back(0);
     }
 

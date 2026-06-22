@@ -10,7 +10,6 @@ struct EntropyPool : Module {
     RANDOM_PARAM,
     START_PARAM,
     LENGTH_PARAM,
-    PING_PONG_PARAM,
     FILTER_PARAM,
     SCALE_PARAM,
     NUM_PARAMS
@@ -23,7 +22,6 @@ struct EntropyPool : Module {
     RANDOM_INPUT,
     START_INPUT,
     LENGTH_INPUT,
-    PING_PONG_INPUT,
     FILTER_INPUT,
     SCALE_INPUT,
     NUM_INPUTS
@@ -41,7 +39,6 @@ struct EntropyPool : Module {
     RUN_LIGHT,
     RESET_LIGHT,
     RANDOM_LIGHT,
-    PING_PONG_LIGHT,
     NUM_LIGHTS
   };
 
@@ -55,7 +52,6 @@ struct EntropyPool : Module {
     configParam(RANDOM_PARAM, 0.f, 1.f, 0.f, "Randomize");
     configParam(START_PARAM, 0.f, 1.f, 0.f, "Start offset");
     configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "Sequence length");
-    configParam(PING_PONG_PARAM, 0.f, 1.f, 0.f, "Ping pong");
     configParam(FILTER_PARAM, 0.f, 1.f, 0.f, "Filter");
     configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
 
@@ -65,7 +61,6 @@ struct EntropyPool : Module {
     configInput(RANDOM_INPUT, "Randomize");
     configInput(START_INPUT, "Start offset");
     configInput(LENGTH_INPUT, "Sequence length");
-    configInput(PING_PONG_INPUT, "Ping pong");
     configInput(FILTER_INPUT, "Filter");
     configInput(SCALE_INPUT, "Scale");
 
@@ -107,8 +102,11 @@ struct EntropyPool : Module {
   }
 };
 
+// TODO: Parameterize and extract
+// TODO: Render tooltips by calculating index from mouse position
 struct Grid : Widget {
   EntropyPool* module = nullptr;
+  int width = 5;
 
   void draw(const DrawArgs &args) override {
     if (!module) {
@@ -118,28 +116,24 @@ struct Grid : Widget {
 
     try {
       DEBUG("size: %i", (int)module->values.size());
-      // TODO: 360 in a 36x10 grid is nice... but is weird with weeks
-      //   Is there a width i can make work that is divisible by 7? (Or tall and render vertically?)
-      //   i guess 35x10 could be ok... can reduce overall width of the module by a bit if it looks weird
-      //   matters less with truly random data... could also consider an "alignment" toggle or something
-      for (int i = 0; i < (int)module->values.size(); i++) {
-      // for (int i = 0; i < 360; i++) {
-      // for (int i = 0; i < 350; i++) {
-        int x = 4 + (i % 35) * 5;
-        int y = 4 + (i / 35) * 5;
+      // for (int i = 0; i < (int)module->values.size(); i++) {
+      for (int i = 0; i < 240; i++) {
+        int x = 1 + (i % 24) * (width + 1);
+        int y = 1 + (i / 24) * (width + 1);
 
-        // NVGcolor color = nvgRGBA(0, 255, 0, rand() * 200 + 55);
+        NVGcolor color = nvgRGBA(0, 255, 0, rand() * 200 + 55);
 
         // TODO: This color formula is not great:
         //   Github actually uses multiple, quantized colors
         //   I do need a gradient, but maybe do so with clear cutoffs like them?
         //   Or, at least pick the right one from their set that works well with alpha
         //   Also, feels off w/scaling? non-zero but small values are not visible
-        int value = module->values[i];
-        NVGcolor color = nvgRGBA(25, 108, 46, value / 10.f * 255.f);
+        // int value = module->values[i];
+        // NVGcolor color = nvgRGBA(25, 108, 46, value / 10.f * 255.f);
 
         nvgBeginPath(args.vg);
-        nvgRect(args.vg, mm2px(x), mm2px(y), mm2px(4), mm2px(4));
+        // nvgRect(args.vg, mm2px(x), mm2px(y), mm2px(width), mm2px(width));
+        nvgRoundedRect(args.vg, mm2px(x), mm2px(y), mm2px(width), mm2px(width), 3.f);
         nvgFillColor(args.vg, color);
         nvgFill(args.vg);
 
@@ -165,36 +159,41 @@ struct EntropyPoolWidget : app::ModuleWidget {
     addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
     addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
 
-
-    Grid* grid = createWidget<Grid>(mm2px(Vec(10, 30)));
+    Grid* grid = createWidget<Grid>(mm2px(Vec(6.24, 21.5)));
     grid->module = module;
-    grid->setSize(mm2px(Vec(183, 53)));
+    grid->setSize(mm2px(Vec(145, 61)));
     addChild(grid);
 
-    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(12, 91)), module, EntropyPool::CLOCK_LIGHT));
+    float paramsX = 10.24;
+    float paramsY = 94.5;
+    float paramsDelta = 11;
+    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(paramsX + paramsDelta * 0, paramsY)), module, EntropyPool::CLOCK_LIGHT));
+    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(paramsX + paramsDelta * 1, paramsY)), module, EntropyPool::RUN_PARAM, EntropyPool::RUN_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(paramsX + paramsDelta * 2, paramsY)), module, EntropyPool::RESET_PARAM, EntropyPool::RESET_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(paramsX + paramsDelta * 3, paramsY)), module, EntropyPool::RANDOM_PARAM, EntropyPool::RANDOM_LIGHT));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 4, paramsY)), module, EntropyPool::START_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 5, paramsY)), module, EntropyPool::LENGTH_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 6, paramsY)), module, EntropyPool::FILTER_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 7, paramsY)), module, EntropyPool::SCALE_PARAM));
 
-    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(23, 91)), module, EntropyPool::RUN_PARAM, EntropyPool::RUN_LIGHT));
-    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(34, 91)), module, EntropyPool::RESET_PARAM, EntropyPool::RESET_LIGHT));
-    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(45, 91)), module, EntropyPool::RANDOM_PARAM, EntropyPool::RANDOM_LIGHT));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(56, 91)), module, EntropyPool::START_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(67, 91)), module, EntropyPool::LENGTH_PARAM));
-    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(78, 91)), module, EntropyPool::PING_PONG_PARAM, EntropyPool::PING_PONG_LIGHT));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(89, 91)), module, EntropyPool::FILTER_PARAM));
-    addParam(createParamCentered<Trimpot>(mm2px(Vec(100, 91)), module, EntropyPool::SCALE_PARAM));
+    float inputsX = 10.24;
+    float inputsY = 116.5;
+    float inputsDelta = 11;
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 0, inputsY)), module, EntropyPool::CLOCK_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 1, inputsY)), module, EntropyPool::RUN_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 2, inputsY)), module, EntropyPool::RESET_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 3, inputsY)), module, EntropyPool::RANDOM_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 4, inputsY)), module, EntropyPool::START_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 5, inputsY)), module, EntropyPool::LENGTH_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 6, inputsY)), module, EntropyPool::FILTER_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 7, inputsY)), module, EntropyPool::SCALE_INPUT));
 
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(12, 113)), module, EntropyPool::CLOCK_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(23, 113)), module, EntropyPool::RUN_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(34, 113)), module, EntropyPool::RESET_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(45, 113)), module, EntropyPool::RANDOM_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(56, 113)), module, EntropyPool::START_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(67, 113)), module, EntropyPool::LENGTH_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(78, 113)), module, EntropyPool::PING_PONG_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(89, 113)), module, EntropyPool::FILTER_INPUT));
-    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(100, 113)), module, EntropyPool::SCALE_INPUT));
-
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(166, 113)), module, EntropyPool::CV_OUTPUT));
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(177, 113)), module, EntropyPool::TRIGGER_OUTPUT));
-    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(188, 113)), module, EntropyPool::END_OF_SEQUENCE_OUTPUT));
+    float outputsX = 122.24;
+    float outputsY = 116.5;
+    float outputsDelta = 11;
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 0, outputsY)), module, EntropyPool::CV_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 1, outputsY)), module, EntropyPool::TRIGGER_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 2, outputsY)), module, EntropyPool::END_OF_SEQUENCE_OUTPUT));
   }
 
   void appendContextMenu(ui::Menu* menu) override {

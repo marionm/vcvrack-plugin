@@ -86,11 +86,11 @@ struct IntegrationsModal : ui::MenuOverlay {
     };
 
     ModalBox* modalBox = new ModalBox();
-    modalBox->box.size = Vec(400, 195);
+    modalBox->box.size = Vec(520, 195);
 
     ui::MenuLabel* title = new ui::MenuLabel();
     // TODO: Better description of private vs public access
-    title->text = "GitHub Token\nEnter to use contribution history as sequencer data\nOptionally prefix with <username>@\nNot saved with patch";
+    title->text = "Enter GitHub personal access token to use contribution history as sequencer values\nOptionally prefix with <username>@\nUse a classic token with 'repo' and 'read:user' for private contribution data\nNot saved with patch";
     title->box.pos = Vec(16, 20);
     modalBox->addChild(title);
 
