@@ -48,6 +48,8 @@ struct EntropyPool : Module {
 
   int valuesSize = ENTROPY_POOL_VALUES_SIZE;
   int currentIndex = 0;
+  int startIndex = 0;
+  int endIndex = ENTROPY_POOL_VALUES_SIZE - 1;
   std::vector<float> values;
   uint32_t seed = 42u;
   dsp::SchmittTrigger clockTrigger;
@@ -65,7 +67,7 @@ struct EntropyPool : Module {
     configParam(RESET_PARAM, 0.f, 1.f, 0.f, "Reset");
     configParam(RANDOM_PARAM, 0.f, 1.f, 0.f, "Randomize");
     configParam(START_PARAM, 0.f, 1.f, 0.f, "Start offset");
-    configParam(LENGTH_PARAM, 0.f, 1.f, 0.f, "Sequence length");
+    configParam(LENGTH_PARAM, 0.f, 1.f, 1.f, "Sequence length");
     configParam(FILTER_PARAM, 0.f, 1.f, 0.f, "Filter");
     configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
 
@@ -90,10 +92,6 @@ struct EntropyPool : Module {
     randomizeValues();
   }
 
-  int sequenceSize() const {
-    return values.empty() ? valuesSize : (int)values.size();
-  }
-
   void process(const ProcessArgs& args) override {
     if (runInputTrigger.process(inputs[RUN_INPUT].getVoltage(), 0.1f, 1.f)) {
       params[RUN_PARAM].setValue(params[RUN_PARAM].getValue() >= 0.5f ? 0.f : 1.f);
@@ -101,6 +99,9 @@ struct EntropyPool : Module {
 
     bool running = params[RUN_PARAM].getValue() >= 0.5f;
     lights[RUN_LIGHT].setBrightness(running ? 1.f : 0.f);
+
+    updateRange();
+    int size = sequenceSize();
 
     if (
       resetButtonTrigger.process(params[RESET_PARAM].getValue(), 0.1f, 1.f) ||
@@ -110,8 +111,12 @@ struct EntropyPool : Module {
     }
 
     if (running && clockTrigger.process(inputs[CLOCK_INPUT].getVoltage(), 0.1f, 1.f)) {
-      currentIndex = (currentIndex + 1) % sequenceSize();
+      currentIndex = nextIndexInRange(currentIndex, startIndex, endIndex, size);
       clockLightPulse.trigger(0.05f);
+    }
+
+    if (!isInRange(currentIndex, startIndex, endIndex, size)) {
+      currentIndex = startIndex;
     }
 
     lights[CLOCK_LIGHT].setBrightness(clockLightPulse.process(args.sampleTime) ? 1.f : 0.f);
@@ -124,6 +129,76 @@ struct EntropyPool : Module {
       seed = (uint32_t(rd()) << 16) ^ uint32_t(rd());
       randomizeValues();
     }
+  }
+
+  int sequenceSize() const {
+    return values.empty() ? valuesSize : (int)values.size();
+  }
+
+  static float clamp01(float value) {
+    if (value < 0.f) return 0.f;
+    if (value > 1.f) return 1.f;
+    return value;
+  }
+
+  int normalizedToIndex(float normalized, int size) const {
+    if (size <= 1) {
+      return 0;
+    }
+    normalized = clamp01(normalized);
+    return (int)(normalized * (float)(size - 1) + 0.5f);
+  }
+
+  int normalizedToLength(float normalized, int size) const {
+    if (size <= 1) {
+      return 1;
+    }
+    normalized = clamp01(normalized);
+    return 1 + (int)(normalized * (float)(size - 1) + 0.5f);
+  }
+
+  bool isInRange(int index, int startIndex, int endIndex, int size) const {
+    if (size <= 0) {
+      return false;
+    }
+    if (startIndex <= endIndex) {
+      return index >= startIndex && index <= endIndex;
+    }
+    return index >= startIndex || index <= endIndex;
+  }
+
+  void updateRange() {
+    int size = sequenceSize();
+    float startValue = inputs[START_INPUT].isConnected()
+      ? inputs[START_INPUT].getVoltage() / 10.f
+      : params[START_PARAM].getValue();
+    float lengthValue = inputs[LENGTH_INPUT].isConnected()
+      ? inputs[LENGTH_INPUT].getVoltage() / 10.f
+      : params[LENGTH_PARAM].getValue();
+
+    startIndex = normalizedToIndex(startValue, size);
+    int length = normalizedToLength(lengthValue, size);
+    endIndex = (startIndex + length - 1) % size;
+  }
+
+  bool isInActiveRange(int index) const {
+    return isInRange(index, startIndex, endIndex, sequenceSize());
+  }
+
+  int nextIndexInRange(int index, int startIndex, int endIndex, int size) const {
+    if (size <= 0) {
+      return 0;
+    }
+
+    if (!isInRange(index, startIndex, endIndex, size)) {
+      return startIndex;
+    }
+
+    index = (index + 1) % size;
+    while (!isInRange(index, startIndex, endIndex, size)) {
+      index = (index + 1) % size;
+    }
+    return index;
   }
 
   void randomizeValues() {
@@ -211,8 +286,14 @@ struct Grid : Widget {
         // NVGcolor color = nvgRGBA(86, 211, 100, value * 255.f);
         NVGcolor color = nvgRGBA(46, 160, 67, value * 255.f);
         nvgFillColor(args.vg, color);
-
         nvgFill(args.vg);
+
+        bool inRange = module ? module->isInActiveRange(i) : false;
+        if (inRange) {
+          nvgStrokeWidth(args.vg, mm2px(0.35));
+          nvgStrokeColor(args.vg, nvgRGBA(255, 255, 255, 60));
+          nvgStroke(args.vg);
+        }
 
         if (i == (module ? module->currentIndex : 0)) {
           nvgStrokeWidth(args.vg, mm2px(0.5));
