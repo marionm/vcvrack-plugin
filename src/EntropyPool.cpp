@@ -52,6 +52,8 @@ struct EntropyPool : Module {
   uint32_t seed = 0;
   dsp::SchmittTrigger clockTrigger;
   dsp::SchmittTrigger runInputTrigger;
+  dsp::SchmittTrigger resetButtonTrigger;
+  dsp::SchmittTrigger resetInputTrigger;
   dsp::SchmittTrigger randomButtonTrigger;
   dsp::SchmittTrigger randomInputTrigger;
   dsp::PulseGenerator clockLightPulse;
@@ -93,6 +95,13 @@ struct EntropyPool : Module {
 
     bool running = params[RUN_PARAM].getValue() >= 0.5f;
     lights[RUN_LIGHT].setBrightness(running ? 1.f : 0.f);
+
+    if (
+      resetButtonTrigger.process(params[RESET_PARAM].getValue(), 0.1f, 1.f) ||
+      resetInputTrigger.process(inputs[RESET_INPUT].getVoltage(), 0.1f, 1.f)
+    ) {
+      currentIndex = 0;
+    }
 
     if (running && clockTrigger.process(inputs[CLOCK_INPUT].getVoltage(), 0.1f, 1.f)) {
       currentIndex = (currentIndex + 1) % sequenceSize();
