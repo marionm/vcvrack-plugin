@@ -1,6 +1,5 @@
+#include "EntropyBaseWidget.hpp"
 #include "EntropyPool.hpp"
-#include "../components/IntegrationsModal.hpp"
-#include "../components/SeedModal.hpp"
 #include "../widgets/Grid.hpp"
 #include "../plugin.hpp"
 
@@ -8,16 +7,8 @@
 
 using namespace rack;
 
-struct EntropyPoolWidget : app::ModuleWidget {
-  EntropyPoolWidget(EntropyPool* module) {
-    setModule(module);
-    setPanel(createPanel(asset::plugin(pluginInstance, "res/EntropyPool.svg")));
-
-    addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, 0)));
-    addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, 0)));
-    addChild(createWidget<ScrewBlack>(Vec(RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
-    addChild(createWidget<ScrewBlack>(Vec(box.size.x - 2 * RACK_GRID_WIDTH, RACK_GRID_HEIGHT - RACK_GRID_WIDTH)));
-
+struct EntropyPoolWidget : EntropyBaseWidget {
+  EntropyPoolWidget(EntropyPool* module) : EntropyBaseWidget(module, "res/EntropyPool.svg") {
     Grid* grid = createWidget<Grid>(mm2px(Vec(6.24, 21.5)));
     grid->module = module;
     grid->length = ENTROPY_POOL_LENGTH;
@@ -56,30 +47,6 @@ struct EntropyPoolWidget : app::ModuleWidget {
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 0, outputsY)), module, EntropyPool::CV_OUTPUT));
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 1, outputsY)), module, EntropyPool::TRIGGER_OUTPUT));
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 2, outputsY)), module, EntropyPool::EOS_OUTPUT));
-  }
-
-  void appendContextMenu(ui::Menu* menu) override {
-    ModuleWidget::appendContextMenu(menu);
-
-    EntropyPool* m = getModule<EntropyPool>();
-    if (!m) return;
-
-    menu->addChild(new ui::MenuSeparator());
-
-    menu->addChild(createMenuItem("Seed...", "", [=]() {
-      SeedModal* modal = new SeedModal(m->seed, [m](uint32_t seed) {
-        m->seed = seed;
-        m->randomizeValues();
-      });
-      APP->scene->addChild(modal);
-    }));
-
-    menu->addChild(createMenuItem("Integrations...", "", [=]() {
-      IntegrationsModal* modal = new IntegrationsModal(m->length, [m](const std::vector<float>& values) {
-        m->values = values;
-      });
-      APP->scene->addChild(modal);
-    }));
   }
 };
 
