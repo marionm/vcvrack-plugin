@@ -43,7 +43,7 @@
      inkscape:window-x="-11"
      inkscape:window-y="3"
      inkscape:window-maximized="1"
-     inkscape:current-layer="svg43"
+     inkscape:current-layer="layer2"
      showguides="false" /><path
      id="background"
      style="fill:#0d1117;stroke-width:0.999995;stroke-dasharray:none"
@@ -377,7 +377,7 @@
      inkscape:groupmode="layer"
      id="layer1"
      inkscape:label="components"
-     style="display:inline"><circle
+     style="display:none"><circle
        style="fill:#ff0000;fill-opacity:1;stroke:none;stroke-width:0.423749;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        id="path23"
        cx="21.24"
@@ -492,7 +492,7 @@
        cy="94.499992"
        r="3"
        inkscape:label="scale" /><rect
-       style="display:none;fill:#ffff00;fill-opacity:1;stroke:none;stroke-width:0.563311;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
+       style="display:inline;fill:#ffff00;fill-opacity:1;stroke:none;stroke-width:0.563311;stroke-linecap:round;stroke-linejoin:round;stroke-dasharray:none;stroke-opacity:1"
        id="rect775"
        width="145"
        height="61"
