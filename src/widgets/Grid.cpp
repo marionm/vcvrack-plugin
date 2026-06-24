@@ -5,8 +5,8 @@ using namespace rack;
 // TODO: Render tooltips by calculating index from mouse position?
 void Grid::draw(const DrawArgs &args) {
   for (int i = 0; i < length; i++) {
-    int x = 1 + (i % 24) * (mm + 1);
-    int y = 1 + (i / 24) * (mm + 1);
+    int x = 1 + (i % rowLength) * (mm + 1);
+    int y = 1 + (i / rowLength) * (mm + 1);
     float value = module ? module->values[i] : defaultDistribution(defaultRng);
 
     nvgBeginPath(args.vg);

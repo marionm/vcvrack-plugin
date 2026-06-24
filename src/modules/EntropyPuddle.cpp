@@ -1,8 +1,8 @@
-#include "EntropyPool.hpp"
+#include "EntropyPuddle.hpp"
 
 using namespace rack;
 
-EntropyPool::EntropyPool() : EntropyBase(ENTROPY_POOL_LENGTH) {
+EntropyPuddle::EntropyPuddle() : EntropyBase(ENTROPY_PUDDLE_LENGTH) {
   config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
 
   configPorts({
@@ -11,7 +11,4 @@ EntropyPool::EntropyPool() : EntropyBase(ENTROPY_POOL_LENGTH) {
     .outputs = { CV_OUTPUT, TRIGGER_OUTPUT, EOS_OUTPUT },
     .lights  = { CLOCK_LIGHT, RUN_LIGHT }
   });
-
-  configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
-  configInput(SCALE_INPUT, "Scale");
 }

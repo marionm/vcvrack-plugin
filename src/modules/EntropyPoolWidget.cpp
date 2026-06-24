@@ -21,6 +21,7 @@ struct EntropyPoolWidget : app::ModuleWidget {
     Grid* grid = createWidget<Grid>(mm2px(Vec(6.24, 21.5)));
     grid->module = module;
     grid->length = ENTROPY_POOL_LENGTH;
+    grid->rowLength = 24;
     grid->mm = 5;
     grid->setSize(mm2px(Vec(145, 61)));
     addChild(grid);
@@ -80,7 +81,6 @@ struct EntropyPoolWidget : app::ModuleWidget {
       APP->scene->addChild(modal);
     }));
   }
-
 };
 
 Model* entropyPoolModel = createModel<EntropyPool, EntropyPoolWidget>("EntropyPool");

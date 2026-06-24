@@ -42,7 +42,7 @@ IntegrationsModal::IntegrationsModal(int targetSize, std::function<void(const st
   weekendsCheckbox = new Checkbox();
   weekendsCheckbox->text = "Include weekends";
   weekendsCheckbox->value = this->api->includeWeekends;
-  weekendsCheckbox->box.pos = Vec(20, 110);
+  weekendsCheckbox->box.pos = Vec(22, 110);
   weekendsCheckbox->box.size = Vec(280, 15);
   modal->addChild(weekendsCheckbox);
 

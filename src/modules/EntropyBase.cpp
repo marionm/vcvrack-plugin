@@ -18,7 +18,6 @@ void EntropyBase::configPorts(const Ids& ids) {
   configParam(ids.params.start, 0.f, 1.f, 0.f, "Start offset");
   configParam(ids.params.length, 0.f, 1.f, 1.f, "Sequence length");
   configParam(ids.params.filter, 0.f, 1.f, 0.f, "Filter");
-  configParam(ids.params.scale, 0.f, 1.f, 0.f, "Scale");
 
   configInput(ids.inputs.clock, "Clock");
   configInput(ids.inputs.run, "Run");
@@ -27,7 +26,6 @@ void EntropyBase::configPorts(const Ids& ids) {
   configInput(ids.inputs.start, "Start offset");
   configInput(ids.inputs.length, "Sequence length");
   configInput(ids.inputs.filter, "Filter");
-  configInput(ids.inputs.scale, "Scale");
 
   configOutput(ids.outputs.cv, "CV");
   configOutput(ids.outputs.trigger, "Trigger");

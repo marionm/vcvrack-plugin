@@ -17,6 +17,11 @@
       "slug": "EntropyPool",
       "name": "Entropy Pool",
       "tags": ["Sequencer"]
+    },
+    {
+      "slug": "EntropyPuddle",
+      "name": "Entropy Puddle",
+      "tags": ["Sequencer"]
     }
   ]
 }

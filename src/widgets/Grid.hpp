@@ -7,7 +7,7 @@
 #include <random>
 
 struct Grid : rack::Widget {
-  int length, mm;
+  int length, rowLength, mm;
 
   // Will be null in previews - use default rng to generate a preview grid
   EntropyBase* module = nullptr;

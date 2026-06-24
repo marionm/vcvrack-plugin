@@ -12,11 +12,11 @@ struct EntropyBase : rack::Module {
   int maxIndex = 0; // max is somehat misleading, as it can wrap
 
   struct ParamIds {
-    int run, reset, random, start, length, filter, scale;
+    int run, reset, random, start, length, filter;
   };
 
   struct InputIds {
-    int clock, run, reset, random, start, length, filter, scale;
+    int clock, run, reset, random, start, length, filter;
   };
 
   struct OutputIds {
