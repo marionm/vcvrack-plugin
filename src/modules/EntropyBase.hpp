@@ -5,6 +5,44 @@
 #include <vector>
 
 struct EntropyBase : rack::Module {
+  enum ParamId {
+    RUN_PARAM,
+    RESET_PARAM,
+    RANDOM_PARAM,
+    START_PARAM,
+    LENGTH_PARAM,
+    FILTER_PARAM,
+    SCALE_PARAM,
+    NUM_PARAMS
+  };
+
+  enum InputId {
+    CLOCK_INPUT,
+    RUN_INPUT,
+    RESET_INPUT,
+    RANDOM_INPUT,
+    START_INPUT,
+    LENGTH_INPUT,
+    FILTER_INPUT,
+    SCALE_INPUT,
+    NUM_INPUTS
+  };
+
+  enum OutputId {
+    CV_OUTPUT,
+    TRIGGER_OUTPUT,
+    EOS_OUTPUT,
+    NUM_OUTPUTS
+  };
+
+  enum LightId {
+    CLOCK_LIGHT,
+    RUN_LIGHT,
+    RESET_LIGHT,
+    RANDOM_LIGHT,
+    NUM_LIGHTS
+  };
+
   std::vector<float> values;
   const int length;
   int minIndex = 0;
@@ -12,38 +50,11 @@ struct EntropyBase : rack::Module {
   int maxIndex = 0; // max is somehat misleading, as it can wrap
   float minValue = 0;
 
-  struct ParamIds {
-    int run, reset, random, start, length, filter;
-  };
-
-  struct InputIds {
-    int clock, run, reset, random, start, length, filter;
-  };
-
-  struct OutputIds {
-    int cv, trigger, endOfSequence;
-  };
-
-  struct LightIds {
-    int clock, run;
-  };
-
-  struct Ids {
-    ParamIds params;
-    InputIds inputs;
-    OutputIds outputs;
-    LightIds lights;
-  };
-
   uint32_t seed = 42u;
 
   EntropyBase(int length);
-  void configPorts(const Ids& ids);
   bool isInRange(int index) const;
   void randomizeValues();
-
-protected:
-  Ids ids;
 
 private:
   rack::dsp::SchmittTrigger clockTrigger;

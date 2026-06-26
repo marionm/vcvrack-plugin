@@ -2,8 +2,6 @@
 #include "../components/IntegrationsModal.hpp"
 #include "../components/SeedModal.hpp"
 
-#include <rack.hpp>
-
 using namespace rack;
 
 EntropyBaseWidget::EntropyBaseWidget(EntropyBase* module, std::string svgPath) {

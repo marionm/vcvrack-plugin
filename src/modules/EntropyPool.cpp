@@ -1,17 +1,62 @@
-#include "EntropyPool.hpp"
+#include "EntropyBaseWidget.hpp"
+#include "EntropyBase.hpp"
+#include "../widgets/Grid.hpp"
+#include "../plugin.hpp"
 
-using namespace rack;
+#include "EntropyBase.hpp"
 
-EntropyPool::EntropyPool() : EntropyBase(ENTROPY_POOL_LENGTH) {
-  config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+static constexpr int ENTROPY_POOL_LENGTH = 240;
 
-  configPorts({
-    .params  = { RUN_PARAM, RESET_PARAM, RANDOM_PARAM, START_PARAM, LENGTH_PARAM, FILTER_PARAM },
-    .inputs  = { CLOCK_INPUT, RUN_INPUT, RESET_INPUT, RANDOM_INPUT, START_INPUT, LENGTH_INPUT, FILTER_INPUT },
-    .outputs = { CV_OUTPUT, TRIGGER_OUTPUT, EOS_OUTPUT },
-    .lights  = { CLOCK_LIGHT, RUN_LIGHT }
-  });
+struct EntropyPool : EntropyBase {
+  EntropyPool() : EntropyBase(ENTROPY_POOL_LENGTH) {
+  }
+};
 
-  configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
-  configInput(SCALE_INPUT, "Scale");
-}
+struct EntropyPoolWidget : EntropyBaseWidget {
+  EntropyPoolWidget(EntropyPool* module) : EntropyBaseWidget(module, "res/EntropyPool.svg") {
+    Grid* grid = createWidget<Grid>(mm2px(Vec(6.24, 6.24)));
+    grid->module = module;
+    grid->length = ENTROPY_POOL_LENGTH;
+    grid->rowLength = 24;
+    grid->mm = 5;
+    grid->setSize(mm2px(Vec(145, 61)));
+    addChild(grid);
+
+    // float row1X = 61.74
+    // float row1Y = 80.5
+    // float row1Delta = 16;
+
+    float paramsX = 10.24;
+    float paramsY = 94.5;
+    float paramsDelta = 11;
+    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(paramsX + paramsDelta * 0, paramsY)), module, EntropyPool::CLOCK_LIGHT));
+    addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(paramsX + paramsDelta * 1, paramsY)), module, EntropyPool::RUN_PARAM, EntropyPool::RUN_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(paramsX + paramsDelta * 2, paramsY)), module, EntropyPool::RESET_PARAM, EntropyPool::RESET_LIGHT));
+    addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(paramsX + paramsDelta * 3, paramsY)), module, EntropyPool::RANDOM_PARAM, EntropyPool::RANDOM_LIGHT));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 4, paramsY)), module, EntropyPool::START_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 5, paramsY)), module, EntropyPool::LENGTH_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 6, paramsY)), module, EntropyPool::FILTER_PARAM));
+    addParam(createParamCentered<Trimpot>(mm2px(Vec(paramsX + paramsDelta * 7, paramsY)), module, EntropyPool::SCALE_PARAM));
+
+    float inputsX = 10.24;
+    float inputsY = 116.5;
+    float inputsDelta = 11;
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 0, inputsY)), module, EntropyPool::CLOCK_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 1, inputsY)), module, EntropyPool::RUN_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 2, inputsY)), module, EntropyPool::RESET_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 3, inputsY)), module, EntropyPool::RANDOM_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 4, inputsY)), module, EntropyPool::START_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 5, inputsY)), module, EntropyPool::LENGTH_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 6, inputsY)), module, EntropyPool::FILTER_INPUT));
+    addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(inputsX + inputsDelta * 7, inputsY)), module, EntropyPool::SCALE_INPUT));
+
+    float outputsX = 122.24;
+    float outputsY = 116.5;
+    float outputsDelta = 11;
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 0, outputsY)), module, EntropyPool::CV_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 1, outputsY)), module, EntropyPool::TRIGGER_OUTPUT));
+    addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(outputsX + outputsDelta * 2, outputsY)), module, EntropyPool::EOS_OUTPUT));
+  }
+};
+
+Model* entropyPoolModel = createModel<EntropyPool, EntropyPoolWidget>("EntropyPool");

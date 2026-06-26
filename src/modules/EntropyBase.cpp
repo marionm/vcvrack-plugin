@@ -5,31 +5,39 @@
 using namespace rack;
 
 EntropyBase::EntropyBase(int length) : length(length) {
+  config(NUM_PARAMS, NUM_INPUTS, NUM_OUTPUTS, NUM_LIGHTS);
+
+  configInput(CLOCK_INPUT, "Clock");
+
+  configInput(RUN_INPUT, "Run");
+  configParam(RUN_PARAM, 0.f, 1.f, 0.f, "Run");
+
+  configInput(RESET_INPUT, "Reset");
+  configParam(RESET_PARAM, 0.f, 1.f, 0.f, "Reset");
+
+  configInput(RANDOM_INPUT, "Randomize");
+  configParam(RANDOM_PARAM, 0.f, 1.f, 0.f, "Randomize");
+
+  configInput(START_INPUT, "Start offset");
+  configParam(START_PARAM, 0.f, 1.f, 0.f, "Start offset");
+
+  configInput(FILTER_INPUT, "Filter");
+  configParam(FILTER_PARAM, 0.f, 1.f, 0.f, "Filter");
+
+  configInput(LENGTH_INPUT, "Sequence length");
+  configParam(LENGTH_PARAM, 0.f, 1.f, 1.f, "Sequence length");
+
+  configInput(SCALE_INPUT, "Scale");
+  configParam(SCALE_PARAM, 0.f, 1.f, 0.f, "Scale");
+
+  configOutput(CV_OUTPUT, "CV");
+
+  configOutput(TRIGGER_OUTPUT, "Trigger");
+
+  configOutput(EOS_OUTPUT, "End of sequence");
+
   maxIndex = length - 1;
   randomizeValues();
-}
-
-void EntropyBase::configPorts(const Ids& ids) {
-  this->ids = ids;
-
-  configParam(ids.params.run, 0.f, 1.f, 0.f, "Run");
-  configParam(ids.params.reset, 0.f, 1.f, 0.f, "Reset");
-  configParam(ids.params.random, 0.f, 1.f, 0.f, "Randomize");
-  configParam(ids.params.start, 0.f, 1.f, 0.f, "Start offset");
-  configParam(ids.params.length, 0.f, 1.f, 1.f, "Sequence length");
-  configParam(ids.params.filter, 0.f, 1.f, 0.f, "Filter");
-
-  configInput(ids.inputs.clock, "Clock");
-  configInput(ids.inputs.run, "Run");
-  configInput(ids.inputs.reset, "Reset");
-  configInput(ids.inputs.random, "Randomize");
-  configInput(ids.inputs.start, "Start offset");
-  configInput(ids.inputs.length, "Sequence length");
-  configInput(ids.inputs.filter, "Filter");
-
-  configOutput(ids.outputs.cv, "CV");
-  configOutput(ids.outputs.trigger, "Trigger");
-  configOutput(ids.outputs.endOfSequence, "End of sequence");
 }
 
 void EntropyBase::onReset() {
@@ -47,38 +55,38 @@ void EntropyBase::process(const ProcessArgs& args) {
 }
 
 void EntropyBase::updateFilter() {
-  minValue = inputs[ids.inputs.filter].isConnected()
-    ? inputs[ids.inputs.filter].getVoltage() / 10.f
-    : params[ids.params.filter].getValue();
+  minValue = inputs[FILTER_INPUT].isConnected()
+    ? inputs[FILTER_INPUT].getVoltage() / 10.f
+    : params[FILTER_PARAM].getValue();
 }
 
 void EntropyBase::updateRange() {
-  float startRatio = inputs[ids.inputs.start].isConnected()
-    ? inputs[ids.inputs.start].getVoltage() / 10.f
-    : params[ids.params.start].getValue();
+  float startRatio = inputs[START_INPUT].isConnected()
+    ? inputs[START_INPUT].getVoltage() / 10.f
+    : params[START_PARAM].getValue();
 
   minIndex = (int)(clamp01(startRatio) * (float)(length - 0.5f));
 
-  float lengthRatio = inputs[ids.inputs.length].isConnected()
-    ? inputs[ids.inputs.length].getVoltage() / 10.f
-    : params[ids.params.length].getValue();
+  float lengthRatio = inputs[LENGTH_INPUT].isConnected()
+    ? inputs[LENGTH_INPUT].getVoltage() / 10.f
+    : params[LENGTH_PARAM].getValue();
 
   maxIndex = (int)(clamp01(lengthRatio) * (float)(length - 0.5f) + minIndex) % length;
 }
 
 void EntropyBase::updateRun() {
-  if (runInputTrigger.process(inputs[ids.inputs.run].getVoltage())) {
-    params[ids.params.run].setValue(params[ids.params.run].getValue() >= 0.5f ? 0.f : 1.f);
+  if (runInputTrigger.process(inputs[RUN_INPUT].getVoltage())) {
+    params[RUN_PARAM].setValue(params[RUN_PARAM].getValue() >= 0.5f ? 0.f : 1.f);
   }
 
-  bool running = params[ids.params.run].getValue() >= 0.5f;
-  lights[ids.lights.run].setBrightness(running ? 1.f : 0.f);
+  bool running = params[RUN_PARAM].getValue() >= 0.5f;
+  lights[RUN_LIGHT].setBrightness(running ? 1.f : 0.f);
 }
 
 void EntropyBase::updateValues() {
   if (
-    randomButtonTrigger.process(params[ids.params.random].getValue()) ||
-    randomInputTrigger.process(inputs[ids.inputs.random].getVoltage())
+    randomButtonTrigger.process(params[RANDOM_PARAM].getValue()) ||
+    randomInputTrigger.process(inputs[RANDOM_INPUT].getVoltage())
   ) {
     std::random_device rd;
     seed = (uint32_t(rd()) << 16) ^ uint32_t(rd());
@@ -87,8 +95,8 @@ void EntropyBase::updateValues() {
 }
 
 void EntropyBase::updateIndex(const ProcessArgs& args) {
-  bool running = params[ids.params.run].getValue() >= 0.5f;
-  if (running && clockTrigger.process(inputs[ids.inputs.clock].getVoltage())) {
+  bool running = params[RUN_PARAM].getValue() >= 0.5f;
+  if (running && clockTrigger.process(inputs[CLOCK_INPUT].getVoltage())) {
     clockLightPulse.trigger(0.05f);
     if (index == length - 1) {
       index = 0;
@@ -96,12 +104,12 @@ void EntropyBase::updateIndex(const ProcessArgs& args) {
       index++;
     }
   }
-  lights[ids.lights.clock].setBrightness(clockLightPulse.process(args.sampleTime) ? 1.f : 0.f);
+  lights[CLOCK_LIGHT].setBrightness(clockLightPulse.process(args.sampleTime) ? 1.f : 0.f);
 
   if (
     !isInRange(index) || // Even if not running or resetting to keep index inside a changing range
-    resetButtonTrigger.process(params[ids.params.reset].getValue()) ||
-    resetInputTrigger.process(inputs[ids.inputs.reset].getVoltage())
+    resetButtonTrigger.process(params[RESET_PARAM].getValue()) ||
+    resetInputTrigger.process(inputs[RESET_INPUT].getVoltage())
   ) {
     index = minIndex;
   }
