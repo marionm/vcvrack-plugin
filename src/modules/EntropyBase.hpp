@@ -83,7 +83,6 @@ private:
 
   rack::dsp::PulseGenerator eosPulse;
   rack::dsp::PulseGenerator triggerPulse;
-  rack::dsp::PulseGenerator gatePulse;
 
   void onRandomize() override;
   void onReset() override;
@@ -93,7 +92,7 @@ private:
   bool updateRun();
   void updateValues(const ProcessArgs& args);
   bool updateRange();
-  bool updateIndex(const ProcessArgs& args, bool isRunning, bool isReversed);
+  void updateIndex(const ProcessArgs& args, bool isRunning, bool isReversed);
 
   float timeSinceLastClock = 0.f;
   bool hasStepped = false;
@@ -103,8 +102,7 @@ private:
   void updateGateOutput(const ProcessArgs& args, float value, bool didStep);
 
   float getValue();
-
-  void pulseLight(const ProcessArgs& args, rack::dsp::PulseGenerator& pulse, int lightId, bool on);
+  float scaleValue(float value);
 
   static float clamp01(float value);
   static float clamp11(float value);

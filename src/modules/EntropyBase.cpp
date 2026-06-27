@@ -1,6 +1,7 @@
 #include "EntropyBase.hpp"
 #include "../components/FilterParamQuantity.hpp"
 #include "../components/LengthParamQuantity.hpp"
+#include "../components/ScaleParamQuantity.hpp"
 #include "../components/StartParamQuantity.hpp"
 
 #include <random>
@@ -51,7 +52,7 @@ EntropyBase::EntropyBase(int totalLength) : totalLength(totalLength) {
   configOutput(GATE_OUTPUT, "Gate");
   configOutput(CV_OUTPUT, "CV");
 
-  configParam(SCALE_PARAM, -1.f, 1.f, .1f, "Scale");
+  configParam<ScaleParamQuantity>(SCALE_PARAM, -1.f, 1.f, .1f, "Scale");
   getParamQuantity(SCALE_PARAM)->randomizeEnabled = false;
 
   maxIndex = totalLength - 1;
@@ -79,10 +80,7 @@ void EntropyBase::process(const ProcessArgs& args) {
   updateValues(args);
 
   bool isReversed = updateRange();
-  bool didStep = updateIndex(args, isRunning, isReversed);
-
-  float value = getValue();
-  updateGateOutput(args, value, didStep);
+  updateIndex(args, isRunning, isReversed);
 }
 
 void EntropyBase::updateFilter() {
@@ -144,46 +142,62 @@ bool EntropyBase::updateRun() {
 }
 
 void EntropyBase::updateValues(const ProcessArgs& args) {
-  bool didRandomize = false;
   if (
     randomButtonTrigger.process(params[RANDOM_PARAM].getValue()) ||
     randomTrigger.process(inputs[RANDOM_INPUT].getVoltage())
   ) {
     randomizeSeed();
     randomizeValues();
-    didRandomize = true;
+    randomPulse.trigger(1e-3f);
   }
 
-  pulseLight(args, randomPulse, RANDOM_LIGHT, didRandomize);
+  lights[RANDOM_LIGHT].setSmoothBrightness(randomPulse.process(args.sampleTime), args.sampleTime);
 }
 
-bool EntropyBase::updateIndex(const ProcessArgs& args, bool isRunning, bool isReversed) {
+void EntropyBase::updateIndex(const ProcessArgs& args, bool isRunning, bool isReversed) {
+  float value = getValue();
+
   bool didStep = false;
-  bool hitEos = false;
   if (isRunning && (
     clockButtonTrigger.process(params[CLOCK_PARAM].getValue()) ||
     clockTrigger.process(inputs[CLOCK_INPUT].getVoltage())
   )) {
     index += isReversed ? -1 : 1;
     didStep = true;
-    hitEos = clampIndex(isReversed);
+    clockPulse.trigger(1e-3f);
+
+    if (clampIndex(isReversed)) {
+      eosPulse.trigger(1e-3f);
+    }
+
+    if (value > 0.f) {
+      triggerPulse.trigger(1e-3f);
+    }
   }
 
-  pulseLight(args, clockPulse, CLOCK_LIGHT, didStep);
-  pulseLight(args, eosPulse, EOS_LIGHT, hitEos);
+  lights[CLOCK_LIGHT].setSmoothBrightness(clockPulse.process(args.sampleTime), args.sampleTime);
 
-  bool didReset = false;
   if (
     resetButtonTrigger.process(params[RESET_PARAM].getValue()) ||
     resetTrigger.process(inputs[RESET_INPUT].getVoltage())
   ) {
     index = isReversed ? maxIndex : minIndex;
-    didReset = true;
+    resetPulse.trigger(1e-3f);
   }
 
-  pulseLight(args, resetPulse, RESET_LIGHT, didReset);
+  lights[RESET_LIGHT].setSmoothBrightness(resetPulse.process(args.sampleTime), args.sampleTime);
 
-  return didStep;
+  bool hitEos = eosPulse.process(args.sampleTime);
+  lights[EOS_LIGHT].setSmoothBrightness(hitEos, args.sampleTime);
+  outputs[EOS_OUTPUT].setVoltage(hitEos ? 10.f : 0.f);
+
+  bool hitTrigger = triggerPulse.process(args.sampleTime);
+  lights[TRIGGER_LIGHT].setSmoothBrightness(hitTrigger, args.sampleTime);
+  outputs[TRIGGER_OUTPUT].setVoltage(hitTrigger ? 10.f : 0.f);
+
+  outputs[CV_OUTPUT].setVoltage(scaleValue(value));
+
+  updateGateOutput(args, value, didStep);
 }
 
 void EntropyBase::updateGateOutput(const ProcessArgs& args, float value, bool didStep) {
@@ -209,7 +223,7 @@ void EntropyBase::updateGateOutput(const ProcessArgs& args, float value, bool di
     timeSinceLastClock = 0.f;
   }
 
-  pulseLight(args, gatePulse, GATE_LIGHT, isGateActive);
+  lights[GATE_LIGHT].setSmoothBrightness(isGateActive, args.sampleTime);
   outputs[GATE_OUTPUT].setVoltage(isGateActive ? 10.f : 0.f);
 }
 
@@ -219,18 +233,17 @@ float EntropyBase::getValue() {
   if (minValue <= value && value <= maxValue) {
     return value;
   } else {
-    return 0;
+    return 0.f;
   }
 }
 
-// TODO: Extract a generic helpers module
-void EntropyBase::pulseLight(const ProcessArgs& args, dsp::PulseGenerator& pulse, int lightId, bool on) {
-  if (on) {
-    pulse.trigger(1e-3f);
-    pulse.process(args.sampleTime);
+float EntropyBase::scaleValue(float value) {
+  float scale = params[SCALE_PARAM].getValue();
+  if (scale >= 0) {
+    return value * scale;
+  } else {
+    return (value - .5f) * -scale;
   }
-
-  lights[lightId].setSmoothBrightness(on, args.sampleTime);
 }
 
 bool EntropyBase::isInRange(int index) const {

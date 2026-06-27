@@ -25,22 +25,16 @@ The token is *not* saved with patches, but the loaded activity is, so you don't 
 
 ## TODO
 
-* bring back gate, i have svg room now!
-    * always 10v out, but value determines duration - need to derive from clock then...
-* randomize should actually randomize - it gets knobs, not value array
+* better plugin/author name
 * Update readme with new screenshot, puddle, more info
     * do this sooner rather than later, but after knob defaults
-* attenuverters
-* Outputs
-    * trg light
-    * eos is when going from end to start
-* cv scale
-* Replace seed input/output with just raw values string (comma separated)
-    * or add separately?
-* value tooltips on hover?
-* confirm short github history is fine
-* Direct sequence value modification?
-    * Can i support click/drag or right click modal editing *per* cell?
+* attenuverters/cv
+* Tooltips
+    * clean up formatting w/printf and precision limits - see ScaleParmQuantity
+* input/output modal with raw values string (comma separated)
+* value tooltips on mouse hover in grid?
+* confirm too-short github history works
+* Can i support click/drag or right click modal editing *per* cell?
 * Another SVG pass
     * subtle background texture - pure flat looks a little odd
     * any border? (like my memoryman, colored front, bare metal texture border)
