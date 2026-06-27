@@ -32,7 +32,7 @@ struct EntropyPoolWidget : EntropyBaseWidget {
     addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::FILTER_PARAM));
     addParam(createParamCentered<RoundBlackKnob>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::LENGTH_PARAM));
 
-    x = 10.24;
+    x = 12.74;
     y = 94.5;
     d = 11;
     addChild(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::CLOCK_PARAM, EntropyPool::CLOCK_LIGHT));
@@ -45,13 +45,13 @@ struct EntropyPoolWidget : EntropyBaseWidget {
     addParam(createParamCentered<Trimpot>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::FILTER_CV_PARAM));
     addParam(createParamCentered<Trimpot>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::LENGTH_CV_PARAM));
 
-    x = 114.24;
+    x = 111.74;
     addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::EOS_LIGHT));
     addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::TRIGGER_LIGHT));
     addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::GATE_LIGHT));
     addParam(createParamCentered<Trimpot>(mm2px(Vec(x + d * 3, y)), module, EntropyPool::SCALE_PARAM));
 
-    x = 10.24;
+    x = 12.74;
     y = 113.115; // Lines up with many VCV plugins
     d = 11;
     addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::CLOCK_INPUT));
@@ -64,7 +64,7 @@ struct EntropyPoolWidget : EntropyBaseWidget {
     addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::FILTER_INPUT));
     addInput(createInputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::LENGTH_INPUT));
 
-    x = 114.24;
+    x = 111.74;
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::EOS_OUTPUT));
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::TRIGGER_OUTPUT));
     addOutput(createOutputCentered<DarkPJ301MPort>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::GATE_OUTPUT));
