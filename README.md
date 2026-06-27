@@ -26,8 +26,7 @@ The token is *not* saved with patches, but the loaded activity is, so you don't 
 ## TODO
 
 * better plugin/author name
-* Update readme with new screenshot, puddle, more info
-    * do this sooner rather than later, but after knob defaults
+* Update readme with more info
 * attenuverters/cv
 * Tooltips
     * clean up formatting w/printf and precision limits - see ScaleParmQuantity
