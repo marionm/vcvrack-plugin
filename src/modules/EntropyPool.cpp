@@ -6,6 +6,8 @@
 #include "EntropyBase.hpp"
 
 static constexpr int ENTROPY_POOL_LENGTH = 240;
+static constexpr int ENTROPY_POOL_ROW_LENGTH = 24;
+static constexpr int ENTROPY_POOL_GRID_ITEM_WIDTH = 5;
 
 struct EntropyPool : EntropyBase {
   EntropyPool() : EntropyBase(ENTROPY_POOL_LENGTH) {
@@ -15,11 +17,12 @@ struct EntropyPool : EntropyBase {
 struct EntropyPoolWidget : EntropyBaseWidget {
   EntropyPoolWidget(EntropyPool* module) : EntropyBaseWidget(module, "res/EntropyPool3.svg") {
     Grid* grid = createWidget<Grid>(mm2px(Vec(6.24, 6.24)));
-    grid->module = module;
-    grid->length = ENTROPY_POOL_LENGTH;
-    grid->rowLength = 24;
-    grid->mm = 5;
     grid->setSize(mm2px(Vec(145, 61)));
+    grid->module = module;
+    // Not from module, as module is null in the preview
+    grid->length = ENTROPY_POOL_LENGTH;
+    grid->rowLength = ENTROPY_POOL_ROW_LENGTH;
+    grid->itemWidth = ENTROPY_POOL_GRID_ITEM_WIDTH;
     addChild(grid);
 
     float x = 62.74;
@@ -32,7 +35,7 @@ struct EntropyPoolWidget : EntropyBaseWidget {
     x = 10.24;
     y = 94.5;
     d = 11;
-    addChild(createLightCentered<MediumLight<GreenLight>>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::CLOCK_LIGHT));
+    addChild(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(x + d * 0, y)), module, EntropyPool::CLOCK_PARAM, EntropyPool::CLOCK_LIGHT));
     addParam(createLightParamCentered<VCVLightLatch<MediumSimpleLight<WhiteLight>>>(mm2px(Vec(x + d * 1, y)), module, EntropyPool::RUN_PARAM, EntropyPool::RUN_LIGHT));
     addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(x + d * 2, y)), module, EntropyPool::RESET_PARAM, EntropyPool::RESET_LIGHT));
     addParam(createLightParamCentered<VCVLightBezel<WhiteLight>>(mm2px(Vec(x + d * 3, y)), module, EntropyPool::RANDOM_PARAM, EntropyPool::RANDOM_LIGHT));

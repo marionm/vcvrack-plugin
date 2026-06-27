@@ -6,6 +6,7 @@
 
 struct EntropyBase : rack::Module {
   enum ParamId {
+    CLOCK_PARAM,
     RUN_PARAM,
     RESET_PARAM,
     RANDOM_PARAM,
@@ -48,37 +49,55 @@ struct EntropyBase : rack::Module {
   };
 
   std::vector<float> values;
-  const int length;
+  const int totalLength;
   int minIndex = 0;
   int index = 0;
   int maxIndex = 0; // max is somehat misleading, as it can wrap
   float minValue = 0;
+  float maxValue = 0;
+  float gridItemWidth = 5;
 
   uint32_t seed = 42u;
 
-  EntropyBase(int length);
+  EntropyBase(int totalLength);
   bool isInRange(int index) const;
+  void randomizeSeed();
   void randomizeValues();
 
 private:
+  rack::dsp::SchmittTrigger clockButtonTrigger;
   rack::dsp::SchmittTrigger clockTrigger;
-  rack::dsp::SchmittTrigger runInputTrigger;
-  rack::dsp::SchmittTrigger resetButtonTrigger;
-  rack::dsp::SchmittTrigger resetInputTrigger;
-  rack::dsp::SchmittTrigger randomButtonTrigger;
-  rack::dsp::SchmittTrigger randomInputTrigger;
-  rack::dsp::PulseGenerator clockLightPulse;
+  rack::dsp::PulseGenerator clockPulse;
 
+  rack::dsp::SchmittTrigger runTrigger;
+
+  rack::dsp::SchmittTrigger resetButtonTrigger;
+  rack::dsp::SchmittTrigger resetTrigger;
+  rack::dsp::PulseGenerator resetPulse;
+
+  rack::dsp::SchmittTrigger randomButtonTrigger;
+  rack::dsp::SchmittTrigger randomTrigger;
+  rack::dsp::PulseGenerator randomPulse;
+
+  rack::dsp::PulseGenerator eosPulse;
+  rack::dsp::PulseGenerator triggerPulse;
+
+  void onRandomize() override;
   void onReset() override;
 
   void process(const ProcessArgs& args) override;
   void updateFilter();
-  void updateRange();
   void updateRun();
-  void updateValues();
-  void updateIndex(const ProcessArgs& args);
+  void updateValues(const ProcessArgs& args);
+  bool updateRange();
+  void updateIndex(const ProcessArgs& args, bool isReversed);
+  void pulseLight(const ProcessArgs& args, rack::dsp::PulseGenerator& pulse, int lightId, bool on);
 
   static float clamp01(float value);
+  static float clamp11(float value);
+  bool clampIndex(bool isReversed);
+  int clampRangeIndex(int index);
+
   json_t* dataToJson() override;
   void dataFromJson(json_t* root) override;
 };

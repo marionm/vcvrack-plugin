@@ -33,7 +33,7 @@ void EntropyBaseWidget::appendContextMenu(ui::Menu* menu) {
   }));
 
   menu->addChild(createMenuItem("Integrations...", "", [=]() {
-    IntegrationsModal* modal = new IntegrationsModal(module->length, [module](const std::vector<float>& values) {
+    IntegrationsModal* modal = new IntegrationsModal(module->totalLength, [module](const std::vector<float>& values) {
       module->values = values;
     });
     APP->scene->addChild(modal);
