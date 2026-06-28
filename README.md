@@ -25,22 +25,23 @@ The token is *not* saved with patches, but the loaded activity is, so you don't 
 
 ## TODO
 
-* better plugin/author name
-* Update readme with more info
-* attenuverters/cv
-* Tooltips
-    * clean up formatting w/printf and precision limits - see ScaleParmQuantity
 * input/output modal with raw values string (comma separated)
 * value tooltips on mouse hover in grid?
-* confirm too-short github history works
 * Can i support click/drag or right click modal editing *per* cell?
 * Another SVG pass
-    * subtle background texture - pure flat looks a little odd
-    * any border? (like my memoryman, colored front, bare metal texture border)
-    * custom knobs?
-    * get rid of screws?
-    * sporkbomb logo? like, a cartoon bomb cutouts to make tines at the bottom (angled)
+    * color scheme - still dev centric, but more terminal or vim than github?
+        * some vim schemes are nice...
+    * background texture? pure flat is typical, but maybe improvable
+    * border? (like raw textured metal?)
+    * custom knob svgs?
+    * custom screw svgs?
 * Github build for all platforms
 * Upgrade to C++... 17? 20? What is safe w/VCVrack publishing?
 * vcv manual? how do those work?
+* Standardize spacing before publishing, so new modules can be consistent
+    * Is 11mm horizontal good?
+        * What does default vcv do?
+    * What about vertical from port to label? Port to cv knob? Label to cv knob? Or regular knobs?
+* better plugin/author name
+* Update readme with more info
 * Publish!

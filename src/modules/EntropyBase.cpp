@@ -84,9 +84,10 @@ void EntropyBase::process(const ProcessArgs& args) {
 }
 
 void EntropyBase::updateFilter() {
-  float filter = inputs[FILTER_INPUT].isConnected()
-    ? inputs[FILTER_INPUT].getVoltage() / 10.f
-    : params[FILTER_PARAM].getValue();
+  float filter = clamp11(
+    params[FILTER_PARAM].getValue() +
+    inputs[FILTER_INPUT].getVoltage() / 10.f * params[FILTER_CV_PARAM].getValue()
+  );
 
   if (filter == 0.f) {
     minValue = 0.f;
@@ -101,29 +102,36 @@ void EntropyBase::updateFilter() {
 }
 
 bool EntropyBase::updateRange() {
-  float startRatio = inputs[START_INPUT].isConnected()
-    ? inputs[START_INPUT].getVoltage() / 10.f
-    : params[START_PARAM].getValue();
+  float initialStartRatio = clamp01(params[START_PARAM].getValue());
+  int initialStartIndex = (int)(initialStartRatio * (float)(totalLength - 0.5f));
 
-  int startIndex = (int)(clamp01(startRatio) * (float)(totalLength - 0.5f));
+  float startRatio = clamp01(
+    initialStartRatio +
+    inputs[START_INPUT].getVoltage() / 10.f * params[START_CV_PARAM].getValue()
+  );
+  int startIndex = (int)(startRatio * (float)(totalLength - 0.5f));
 
-  float lengthRatio = inputs[LENGTH_INPUT].isConnected()
-    ? inputs[LENGTH_INPUT].getVoltage() / 10.f
-    : params[LENGTH_PARAM].getValue();
+  float initialLengthRatio = clamp11(params[LENGTH_PARAM].getValue());
+  int initialLength = (int)(initialLengthRatio * (float)(totalLength - 0.5f));
+  float lengthRatio = clamp11(
+    initialLengthRatio +
+    inputs[LENGTH_INPUT].getVoltage() / 10.f * params[LENGTH_CV_PARAM].getValue()
+  );
+  int length = (int)(lengthRatio * (float)(totalLength - 0.5f));
 
-  int length = (int)(clamp11(lengthRatio) * (float)(totalLength - 0.5f));
   bool isReversed = length < 0;
   if (isReversed) {
     minIndex = clampRangeIndex(startIndex + length);
     maxIndex = clampRangeIndex(startIndex);
-    ((StartParamQuantity*)getParamQuantity(START_PARAM))->index = maxIndex;
-    ((LengthParamQuantity*)getParamQuantity(LENGTH_PARAM))->length = length - 1;
+    initialLength--;
   } else {
     minIndex = clampRangeIndex(startIndex);
     maxIndex = clampRangeIndex(startIndex + length);
-    ((StartParamQuantity*)getParamQuantity(START_PARAM))->index = minIndex;
-    ((LengthParamQuantity*)getParamQuantity(LENGTH_PARAM))->length = length + 1;
+    initialLength++;
   }
+
+  ((StartParamQuantity*)getParamQuantity(START_PARAM))->index = clampRangeIndex(initialStartIndex);
+  ((LengthParamQuantity*)getParamQuantity(LENGTH_PARAM))->length = initialLength;
 
   clampIndex(isReversed);
 
