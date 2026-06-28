@@ -1,9 +1,8 @@
-#include "EntropyBaseWidget.hpp"
-#include "EntropyBase.hpp"
-#include "../widgets/Grid.hpp"
-#include "../plugin.hpp"
+#include "EntropyBase/EntropyBase.hpp"
+#include "EntropyBase/EntropyBaseWidget.hpp"
+#include "EntropyBase/Grid.hpp"
 
-#include "EntropyBase.hpp"
+#include "../plugin.hpp"
 
 static constexpr int ENTROPY_POOL_LENGTH = 240;
 static constexpr int ENTROPY_POOL_ROW_LENGTH = 24;

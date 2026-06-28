@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../modules/EntropyBase.hpp"
+#include "EntropyBase.hpp"
 
 #include <rack.hpp>
 

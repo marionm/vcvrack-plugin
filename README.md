@@ -25,23 +25,14 @@ The token is *not* saved with patches, but the loaded activity is, so you don't 
 
 ## TODO
 
+* int snaps for start/len
 * input/output modal with raw values string (comma separated)
 * value tooltips on mouse hover in grid?
 * Can i support click/drag or right click modal editing *per* cell?
-* Another SVG pass
-    * color scheme - still dev centric, but more terminal or vim than github?
-        * some vim schemes are nice...
-    * background texture? pure flat is typical, but maybe improvable
-    * border? (like raw textured metal?)
-    * custom knob svgs?
-    * custom screw svgs?
+* custom knob svgs?
 * Github build for all platforms
 * Upgrade to C++... 17? 20? What is safe w/VCVrack publishing?
-* vcv manual? how do those work?
-* Standardize spacing before publishing, so new modules can be consistent
-    * Is 11mm horizontal good?
-        * What does default vcv do?
-    * What about vertical from port to label? Port to cv knob? Label to cv knob? Or regular knobs?
-* better plugin/author name
+* vcv manual
+* better plugin/author/repo name
 * Update readme with more info
 * Publish!

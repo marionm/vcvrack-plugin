@@ -1,6 +1,8 @@
 #include "EntropyBaseWidget.hpp"
-#include "../components/IntegrationsModal.hpp"
-#include "../components/SeedModal.hpp"
+#include "IntegrationsModal.hpp"
+#include "SeedModal.hpp"
+
+#include "../../plugin.hpp"
 
 using namespace rack;
 

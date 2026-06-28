@@ -1,6 +1,6 @@
 #pragma once
 
-#include "../widgets/Modal.hpp"
+#include "../../widgets/Modal.hpp"
 
 #include <functional>
 

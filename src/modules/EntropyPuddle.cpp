@@ -1,6 +1,7 @@
-#include "EntropyBase.hpp"
-#include "EntropyBaseWidget.hpp"
-#include "../widgets/Grid.hpp"
+#include "EntropyBase/EntropyBase.hpp"
+#include "EntropyBase/EntropyBaseWidget.hpp"
+#include "EntropyBase/Grid.hpp"
+
 #include "../plugin.hpp"
 
 static constexpr int ENTROPY_PUDDLE_LENGTH = 96;

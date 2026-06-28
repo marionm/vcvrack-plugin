@@ -1,5 +1,6 @@
 #include "EntropyBase.hpp"
-#include "../plugin.hpp"
+
+#include <rack.hpp>
 
 #include <string>
 

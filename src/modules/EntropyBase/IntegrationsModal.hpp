@@ -1,9 +1,9 @@
 #pragma once
 
-#include "../integrations/GitHubIntegration.hpp"
-#include "../widgets/Checkbox.hpp"
-#include "../widgets/GitHubTokenField.hpp"
-#include "../widgets/Modal.hpp"
+#include "GitHubIntegration.hpp"
+#include "GitHubTokenField.hpp"
+#include "../../widgets/Checkbox.hpp"
+#include "../../widgets/Modal.hpp"
 
 #include <rack.hpp>
 

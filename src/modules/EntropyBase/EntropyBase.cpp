@@ -1,8 +1,8 @@
 #include "EntropyBase.hpp"
-#include "../components/FilterParamQuantity.hpp"
-#include "../components/LengthParamQuantity.hpp"
-#include "../components/ScaleParamQuantity.hpp"
-#include "../components/StartParamQuantity.hpp"
+#include "FilterParamQuantity.hpp"
+#include "LengthParamQuantity.hpp"
+#include "ScaleParamQuantity.hpp"
+#include "StartParamQuantity.hpp"
 
 #include <random>
 #include <string>

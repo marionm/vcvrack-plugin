@@ -10,7 +10,7 @@ ifeq ($(OS),Windows_NT)
     LDFLAGS += -lws2_32 -lcrypt32
 endif
 
-SOURCES += $(wildcard src/*.cpp) $(wildcard src/*/*.cpp)
+SOURCES += $(wildcard src/*.cpp) $(wildcard src/*/*.cpp) $(wildcard src/*/*/*.cpp)
 
 DISTRIBUTABLES += res
 DISTRIBUTABLES += $(wildcard LICENSE*)
