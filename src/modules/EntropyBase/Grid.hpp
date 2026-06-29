@@ -20,6 +20,11 @@ struct Grid : rack::OpaqueWidget {
   void draw(const DrawArgs &args) override;
   void onEnter(const EnterEvent& event) override;
   void onHover(const HoverEvent& event) override;
+  void onDragMove(const DragMoveEvent& event) override;
   void onLeave(const LeaveEvent& event) override;
+
+private:
+  int hoverIndex = 0;
+  void updateTooltip();
 };
 

@@ -104,8 +104,6 @@ private:
   float getValue();
   float scaleValue(float value);
 
-  static float clamp01(float value);
-  static float clamp11(float value);
   bool clampIndex(bool isReversed);
   int clampRangeIndex(int index);
 

@@ -1,14 +1,16 @@
 #include "FilterParamQuantity.hpp"
 
+using namespace rack;
+
 std::string FilterParamQuantity::getString() {
   float value = getValue();
 
   if (value == 0.f) {
     return getLabel() + ": None";
   } else if (value > 0.f) {
-    return getLabel() + " >= " + std::to_string(value);
+    return getLabel() + string::f(" >= %.2f", value);
   } else {
-    return getLabel() + " <= " + std::to_string(value + 1);
+    return getLabel() + string::f(" <= %.2f", value + 1);
   }
 }
 

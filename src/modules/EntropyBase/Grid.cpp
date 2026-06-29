@@ -1,4 +1,5 @@
 #include "Grid.hpp"
+#include "../../helpers/clamp.hpp"
 
 #include "nanovg.h"
 
@@ -137,16 +138,27 @@ void Grid::onHover(const HoverEvent& event) {
 
   int x = event.pos.x / box.getWidth() * rowLength;
   int y = event.pos.y / box.getHeight() * ((float)length / rowLength);
-  int i = y * rowLength + x;
-  if (i >= 0 && (size_t)i < module->values.size()) {
-    tooltip->text = string::f("%.2f", module->values[i]);
-  } else {
-    tooltip->text = "";
-  }
+  hoverIndex = y * rowLength + x;
+
+  updateTooltip();
+}
+
+void Grid::onDragMove(const DragMoveEvent& event) {
+  float delta = event.mouseDelta.y / 200.f;
+  module->values[hoverIndex] = clamp01(module->values[hoverIndex] - delta);
+  updateTooltip();
 }
 
 void Grid::onLeave(const LeaveEvent& event) {
   OpaqueWidget::onLeave(event);
 
   tooltip->visible = false;
+}
+
+void Grid::updateTooltip() {
+  if (hoverIndex >= 0 && (size_t)hoverIndex < module->values.size()) {
+    tooltip->text = string::f("Index %i: %.2f", hoverIndex, module->values[hoverIndex]);
+  } else {
+    tooltip->text = "";
+  }
 }

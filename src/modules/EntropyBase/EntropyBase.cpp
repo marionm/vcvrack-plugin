@@ -3,6 +3,7 @@
 #include "LengthParamQuantity.hpp"
 #include "ScaleParamQuantity.hpp"
 #include "StartParamQuantity.hpp"
+#include "../../helpers/clamp.hpp"
 
 #include <random>
 #include <string>
@@ -258,27 +259,6 @@ bool EntropyBase::isInRange(int index) const {
     return index >= minIndex && index <= maxIndex;
   } else {
     return index >= minIndex || index <= maxIndex;
-  }
-}
-
-// TODO: Replace clamp helpers with c++17 clamp
-float EntropyBase::clamp01(float value) {
-  if (value < 0.f) {
-    return 0.f;
-  } else if (value > 1.f) {
-    return 1.f;
-  } else {
-    return value;
-  }
-}
-
-float EntropyBase::clamp11(float value) {
-  if (value < -1.f) {
-    return -1.f;
-  } else if (value > 1.f) {
-    return 1.f;
-  } else {
-    return value;
   }
 }
 
