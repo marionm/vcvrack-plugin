@@ -1,4 +1,5 @@
 #include "Grid.hpp"
+#include "GridValueEditor.hpp"
 #include "../../helpers/clamp.hpp"
 
 #include "nanovg.h"
@@ -162,3 +163,20 @@ void Grid::updateTooltip() {
     tooltip->text = "";
   }
 }
+
+void Grid::onButton(const ButtonEvent& event) {
+  if (event.button == GLFW_MOUSE_BUTTON_RIGHT && event.action == GLFW_PRESS) {
+    GridValueEditor::spawn(hoverIndex, &module->values[hoverIndex], getAbsoluteOffset(event.pos));
+    event.consume(this);
+    return;
+  } 
+  else if (event.button == GLFW_MOUSE_BUTTON_LEFT && event.action == GLFW_PRESS) {
+    // With onButton overridden, drag events only work if we also consume left clicks
+    event.consume(this);
+    return;
+  } 
+  else {
+    Widget::onButton(event);
+  }
+}
+

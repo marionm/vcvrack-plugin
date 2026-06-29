@@ -22,6 +22,7 @@ struct Grid : rack::OpaqueWidget {
   void onHover(const HoverEvent& event) override;
   void onDragMove(const DragMoveEvent& event) override;
   void onLeave(const LeaveEvent& event) override;
+  void onButton(const ButtonEvent& event) override;
 
 private:
   int hoverIndex = 0;
