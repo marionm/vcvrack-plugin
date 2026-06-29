@@ -163,8 +163,6 @@ void EntropyBase::updateValues(const ProcessArgs& args) {
 }
 
 void EntropyBase::updateIndex(const ProcessArgs& args, bool isRunning, bool isReversed) {
-  float value = getValue();
-
   bool didStep = false;
   if (isRunning && (
     clockButtonTrigger.process(params[CLOCK_PARAM].getValue()) ||
@@ -178,7 +176,7 @@ void EntropyBase::updateIndex(const ProcessArgs& args, bool isRunning, bool isRe
       eosPulse.trigger(1e-3f);
     }
 
-    if (value > 0.f) {
+    if (getValue() > 0.f) {
       triggerPulse.trigger(1e-3f);
     }
   }
@@ -202,9 +200,10 @@ void EntropyBase::updateIndex(const ProcessArgs& args, bool isRunning, bool isRe
   bool hitTrigger = triggerPulse.process(args.sampleTime);
   lights[TRIGGER_LIGHT].setSmoothBrightness(hitTrigger, args.sampleTime);
   outputs[TRIGGER_OUTPUT].setVoltage(hitTrigger ? 10.f : 0.f);
+  outputs[TRIGGER_OUTPUT].setVoltage(hitTrigger ? 10.f : 0.f);
 
+  float value = getValue();
   outputs[CV_OUTPUT].setVoltage(scaleValue(value));
-
   updateGateOutput(args, value, didStep);
 }
 
