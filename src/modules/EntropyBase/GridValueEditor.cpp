@@ -1,61 +1,50 @@
 #include "GridValueEditor.hpp"
 #include "../../helpers/clamp.hpp"
+#include "../../widgets/Popup.hpp"
 
 using namespace rack;
 
-void GridValueEditor::spawn(int index, float* pValue, const math::Vec& pos) {
-  ui::Menu* menu = new ui::Menu();
-  menu->box.pos = pos;
+struct GridValueEditorInput : ui::TextField {
+  float* pValue;
+  GridValueEditorInput(float* pValue) : pValue(pValue) {}
 
-  ui::MenuLabel* menuLabel = new ui::MenuLabel();
-  menuLabel->text = string::f("Index %i value", index), 
-  menu->addChild(menuLabel);
+  bool wasFocused = false;
+  void draw(const DrawArgs& args) override{
+    ui::TextField::draw(args);
 
-  ui::MenuEntry* entry = new ui::MenuEntry();
-  entry->box.size = math::Vec(120.f, 25.f);
-  menu->addChild(entry);
-
-  GridValueEditor* inputField = new GridValueEditor(pValue);
-  inputField->box.size = entry->box.size;
-  entry->addChild(inputField);
-
-  ui::MenuOverlay* overlay = new ui::MenuOverlay();
-  overlay->addChild(menu);
-  APP->scene->addChild(overlay);
-}
-
-GridValueEditor::GridValueEditor(float* pValue) : pValue(pValue) {
-  if (pValue) {
-    this->text = rack::string::f("%.2f", *pValue);
-  }
-}
-
-void GridValueEditor::onAction(const ActionEvent& e) {
-  ui::TextField::onAction(e);
-  if (pValue) {
-    try {
-      *pValue = clamp01(std::stof(this->text));
-    } catch (...) {}
-  }
-
-  ui::Menu* menu = getAncestorOfType<ui::Menu>();
-  if (menu) {
-    ui::MenuOverlay* overlay = menu->getAncestorOfType<ui::MenuOverlay>();
-    if (overlay) {
-      overlay->requestDelete();
-    } else {
-      menu->requestDelete();
+    if (!wasFocused) {
+      APP->event->setSelectedWidget(this);
+      this->selectAll();
+      wasFocused = true;
     }
   }
-}
 
-void GridValueEditor::draw(const DrawArgs& args) {
-  ui::TextField::draw(args);
+  void onAction(const ActionEvent& e) override {
+    ui::TextField::onAction(e);
 
-  if (!wasFocused) {
-    APP->event->setSelectedWidget(this);
-    this->selectAll();
-    wasFocused = true;
+    if (pValue) {
+      try {
+        *pValue = clamp01(std::stof(this->text));
+      } catch (...) {}
+    }
+
+    Popup::close(this);
   }
-}
+};
 
+GridValueEditor::GridValueEditor(int index, float* pValue) {
+  ui::MenuLabel* label = new ui::MenuLabel();
+  label->text = string::f("Index %i value", index);
+  addChild(label);
+
+  ui::MenuEntry* inputContainer = new ui::MenuEntry();
+  inputContainer->box.size = math::Vec(150.f, 25.f);
+  addChild(inputContainer);
+
+  input = new GridValueEditorInput(pValue);
+  input->box.size = inputContainer->box.size;
+  if (pValue) {
+    input->text = std::to_string(*pValue);
+  }
+  inputContainer->addChild(input);
+}

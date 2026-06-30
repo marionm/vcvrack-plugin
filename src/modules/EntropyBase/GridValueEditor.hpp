@@ -2,15 +2,10 @@
 
 #include <rack.hpp>
 
-struct GridValueEditor : rack::ui::TextField {
-  static void spawn(int index, float* targetFloat, const rack::math::Vec& position);
+struct GridValueEditor : rack::ui::Menu {
+  GridValueEditor(int index, float* pValue);
 
-  float* pValue;
-  bool wasFocused = false;
-
-  GridValueEditor(float* pValue);
-
-  void onAction(const ActionEvent& e) override;
-  void draw(const DrawArgs& args) override;
+private:
+  rack::ui::TextField* input;
 };
 
