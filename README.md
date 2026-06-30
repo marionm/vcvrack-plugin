@@ -25,6 +25,12 @@ The token is *not* saved with patches, but the loaded activity is, so you don't 
 
 ## TODO
 
+* big code cleanup
+    * more use of auto
+    * organize headers
+    * use initializer lists consistently
+    * clean up github api behavior
+    * inline some stuff?
 * custom controls
     * knobs, both sizes
         * draw arcs in nanovg, should make design easier

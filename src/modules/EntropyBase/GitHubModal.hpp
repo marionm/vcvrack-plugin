@@ -1,5 +1,6 @@
 #pragma once
 
+#include "EntropyBase.hpp"
 #include "GitHubIntegration.hpp"
 #include "GitHubTokenField.hpp"
 #include "../../widgets/Checkbox.hpp"
@@ -7,21 +8,21 @@
 
 #include <rack.hpp>
 
-#include <functional>
 #include <memory>
-#include <vector>
 
 struct GitHubModal : Modal {
-  GitHubModal(int targetSize, std::function<void(const std::vector<float>&)> onLoaded);
+  GitHubModal(EntropyBase* module);
+
+  bool onSave() override;
   void step() override;
 
 private:
-  std::function<void(const std::vector<float>&)> onLoaded;
+  EntropyBase* module;
+  rack::ui::MenuLabel* text;
+  GitHubTokenField* tokenField;
+  Checkbox* weekendsCheckbox;
+  rack::ui::Label* statusLabel;
 
   std::unique_ptr<GitHubIntegration> api = std::unique_ptr<GitHubIntegration>(new GitHubIntegration());
   bool wasFetching = false;
-
-  GitHubTokenField* tokenField = nullptr;
-  Checkbox* weekendsCheckbox = nullptr;
-  rack::ui::Label* statusLabel = nullptr;
 };

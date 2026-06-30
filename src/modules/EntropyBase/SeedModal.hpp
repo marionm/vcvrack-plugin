@@ -1,17 +1,18 @@
 #pragma once
 
+#include "EntropyBase.hpp"
 #include "../../widgets/Modal.hpp"
-
-#include <functional>
 
 #include <rack.hpp>
 
 struct SeedModal : Modal {
-  SeedModal(uint32_t seed, std::function<void(uint32_t)> onSave);
+  SeedModal(EntropyBase* module);
+
+  void onOpen() override;
+  bool onSave() override;
 
 private:
-  std::function<void(uint32_t)> onSave;
-
-  rack::ui::TextField* seedField = nullptr;
-  rack::ui::Label* statusLabel = nullptr;
+  EntropyBase* module;
+  rack::ui::TextField* seedField;
+  rack::ui::Label* statusLabel;
 };

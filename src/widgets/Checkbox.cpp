@@ -17,10 +17,11 @@ void Checkbox::draw(const DrawArgs& args) {
     nvgFill(args.vg);
   }
 
+  nvgFillColor(args.vg, nvgRGB(255, 255, 255));
   nvgFontSize(args.vg, 13.f);
   nvgFontFaceId(args.vg, APP->window->uiFont->handle);
   nvgTextAlign(args.vg, NVG_ALIGN_LEFT | NVG_ALIGN_MIDDLE);
-  nvgText(args.vg, 22, 7.5, text.c_str(), nullptr);
+  nvgText(args.vg, 22, 7.5, label.c_str(), nullptr);
 }
 
 void Checkbox::onButton(const event::Button& e) {

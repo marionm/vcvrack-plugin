@@ -3,7 +3,7 @@
 #include <rack.hpp>
 
 // Wraps a single widget and positions it on screen, closing it when anything else is clicked
-// Just instantiate to use, and if you need to close it manually call Popup::close(yourWidget)
+// Just instantiate to spawn, and call Popup::close(yourWidget) to manually close
 struct Popup : rack::ui::MenuOverlay {
   // Centers the widget on screen
   Popup(Widget* widget);
